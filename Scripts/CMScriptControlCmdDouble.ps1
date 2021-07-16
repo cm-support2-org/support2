@@ -4,7 +4,10 @@ Verifie dans la table lot qu'aucun commande est recu en plusieurs exemplaire.
 .NOTES
 Change Log
 #>
+
+#Init
 $ExitCode = 0
+
 #Verification si le fichier existe. S'il existe pas creation
 $fileToMessage = "$env:TEMP\CMErrorDateLotCMD.txt"
 $dateLotCMD = ""
