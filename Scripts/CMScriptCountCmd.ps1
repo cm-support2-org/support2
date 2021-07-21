@@ -6,7 +6,7 @@ Change Log
 #>
 $ExitCode = 0
 #Verification si le fichier existe. S'il existe pas creation
-$fileToMessage = "$env:TEMP\CMErrorMessages.txt"
+$fileToMessage = "$env:TEMP\CMCountLotCMD.txt"
 if (Test-Path $fileToMessage -PathType leaf)
 {
     #Si le fichier existe  
