@@ -1,6 +1,6 @@
 ﻿<#
 .Description
-Verifie si un lot est recu en erreur directement du WebShop.
+Compte le nombre de lot present dans la base de donnes
 .NOTES
 Change Log
 #>
@@ -57,8 +57,7 @@ Function ODBCConnection {
       
         $ds.Tables[0]
                 
-        if ($ds.Tables[0].Rows.Count -gt 0){
-            $Message = "Des commandes en erreur sont presente !"
+        if ($ds.Tables[0].Rows.Count -gt 0){        
             $lbvalide = $false
             
             $ResultQuery = $ds.Tables[0]
@@ -66,15 +65,13 @@ Function ODBCConnection {
             Add-Content $fileToMessage $Message 
 
             foreach ($Row in $ds.Tables[0].Rows) { 
-                Add-Content $fileToMessage "---------------------------------------------------------------------------"	            
-                Add-Content $fileToMessage "ID >>> $($Row.countCMD)"          
-	            Add-Content $fileToMessage "---------------------------------------------------------------------------"
+                $($Row.countCMD)
             }
             
         }
         else
         {
-        $Message = "Aucune commande en erreur"
+        
 
         #Ecrire message
         Add-Content $fileToMessage $Message 
