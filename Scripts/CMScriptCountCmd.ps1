@@ -1,4 +1,4 @@
-﻿<#
+<#
 .Description
 Compte le nombre de lot present dans la base de donnes
 .NOTES
@@ -58,19 +58,22 @@ Function ODBCConnection {
         $ds.Tables[0]
                 
         if ($ds.Tables[0].Rows.Count -gt 0){        
-            $lbvalide = $false
+            #$lbvalide = $false
             
             $ResultQuery = $ds.Tables[0]
             #Ecrire le message dans un fichier text           
             Add-Content $fileToMessage $Message 
 
             foreach ($Row in $ds.Tables[0].Rows) { 
-                $($Row.countCMD)
+                Add-Content $fileToMessage $Row.countCMD
             }
+
+            #Ecrire message
+        Add-Content $fileToMessage $Message 
+        $ExitCode = 0
+        $lbvalide = $True   
             
-        }
-        else
-        {
+        }else{
         
 
         #Ecrire message
