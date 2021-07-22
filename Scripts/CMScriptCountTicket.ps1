@@ -95,4 +95,27 @@ Function ODBCConnection {
     exit $ExitCode
 }
 
-ODBCConnection -dsn "OMC_RESTAU;Uid=dba;Pwd=sql" -query "select count(*) as countTicket from ticket"
+
+$query = "select count(*) as countTicket from ticket"
+
+If (Get-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\ODBC\ODBC.ini\OMC_RESTAU_SECOURS"  -Name Description -ErrorAction SilentlyContinue) {
+     
+#Write-Output "found"
+ODBCConnection -dsn "OMC_RESTAU_SECOURS;Uid=dba;Pwd=sql" -query $query
+
+}Elseif (Get-ItemProperty -Path "HKLM:\SOFTWARE\ODBC\ODBC.ini\OMC_RESTAU_SECOURS"  -Name Description -ErrorAction SilentlyContinue){
+
+#Write-Output "not found"
+ODBCConnection -dsn "OMC_RESTAU_SECOURS;Uid=dba;Pwd=sql" -query $query
+
+
+}Elseif (Get-ItemProperty -Path "HKLM:\SOFTWARE\ODBC\ODBC.ini\OMC_RESTAU"  -Name Description -ErrorAction SilentlyContinue){
+
+#Write-Output "not found"
+ODBCConnection -dsn "OMC_RESTAU;Uid=dba;Pwd=sql" -query $query
+
+}Elseif (Get-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\ODBC\ODBC.ini\OMC_RESTAU"  -Name Description -ErrorAction SilentlyContinue){
+
+#Write-Output "not found"
+ODBCConnection -dsn "OMC_RESTAU;Uid=dba;Pwd=sql" -query $query
+}
