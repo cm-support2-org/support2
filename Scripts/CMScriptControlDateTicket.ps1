@@ -117,4 +117,4 @@ Function ODBCConnection {
     exit $ExitCode
 }
 
-ODBCConnection -dsn "OMC_RESTAU;Uid=dba;Pwd=sql" -query "select dateformat(min(ticket.tic_chrono),'yyyy') as DateTicket from ticket"
+ODBCConnection -dsn "CM_POS;Uid=dba;Pwd=sql" -query "select dateformat(min(ticket.tic_chrono),'yyyy') as DateTicket from ticket"
