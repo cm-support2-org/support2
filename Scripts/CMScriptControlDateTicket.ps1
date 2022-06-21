@@ -80,14 +80,14 @@ Function ODBCConnection {
                 $lbvalide = $false
 
                 Add-Content $fileToMessage "---------------------------------------------------------------------------"	            
-                Add-Content $fileToMessage "Une epuration des donnees est conseillee"
-                Add-Content $fileToMessage "Des donnees sont presentes depuis: $($Row.DateTicket)"
+                Add-Content $fileToMessage "We advise you to purify the tickets."
+                Add-Content $fileToMessage "Data is present from: $($Row.DateTicket)"
 	            Add-Content $fileToMessage "---------------------------------------------------------------------------"
 
                 }else{
 
                     Add-Content $fileToMessage "---------------------------------------------------------------------------"	            
-                    Add-Content $fileToMessage "Une epuration des donnees n'est pas conseillee actuellement !"                    
+                    Add-Content $fileToMessage "Data cleansing is not currently advised. !"                    
 	                Add-Content $fileToMessage "---------------------------------------------------------------------------"
 
                     #Ecrire message
