@@ -117,4 +117,20 @@ Function ODBCConnection {
     exit $ExitCode
 }
 
-ODBCConnection -dsn "CM_POS;Uid=dba;Pwd=sql" -query "select dateformat(min(ticket.tic_chrono),'yyyy') as DateTicket from ticket"
+#Install GOMC ou GOMCPos ?
+    $keyInstallGOMC = 'HKLM:\SOFTWARE\ODBC\ODBC.INI\CM_GOMC'
+    $ODBCGOMCIsPresent = Test-Path $keyInstallGOMC
+    write-output $ODBCGOMCIsPresent
+
+    $keyInstallGOMCPos = 'HKLM:\SOFTWARE\ODBC\ODBC.INI\CM_POS'
+    $ODBCGOMCPosIsPresent = Test-Path $keyInstallGOMCPos
+    write-output $ODBCGOMCPosIsPresent
+
+    if ($ODBCGOMCIsPresent -eq 'True'){
+        $ODBCProfil = 'CM_GOMC'        
+    
+    }elseif ($ODBCGOMCPosIsPresent -eq 'True'){
+        $ODBCProfil = 'CM_POS'        
+    }
+
+ODBCConnection -dsn "$ODBCProfil;Uid=dba;Pwd=sql" -query "select dateformat(min(ticket.tic_chrono),'yyyy') as DateTicket from ticket"
