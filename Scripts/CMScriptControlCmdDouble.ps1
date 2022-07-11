@@ -2,7 +2,7 @@
 .Description
 Verifie dans la table lot qu'aucun commande est recu en plusieurs exemplaire.
 .NOTES
-Change Logs
+Change Log
 #>
 
 #Init
