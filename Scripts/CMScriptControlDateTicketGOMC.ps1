@@ -117,5 +117,91 @@ Function ODBCConnection {
     exit $ExitCode
 }
 
+#=========================================================
+#FUNCTION
+#=========================================================
+function get-pathInstallGOMCSuite_x64{
+    $keyInstall4j_x64 = 'HKLM:\SOFTWARE\ej-technologies\install4j\installations'
+    $keyIsPrensent = Test-Path $keyInstall4j_x64
 
-ODBCConnection -dsn "CM_GOMC;Uid=dba;Pwd=sql" -query "select dateformat(min(ticket.tic_chrono),'yyyy') as DateTicket from ticket"
+    if ( $keyIsPrensent -eq "True"){
+        
+        $name0fRegisteryKey = 'instdir6281-3708-5137-9831'
+        $instdirPath = (Get-ItemProperty -Path $keyInstall4j_x64).$name0fRegisteryKey
+        
+        if($instdirPath.Length -eq 0){
+        
+        }else{
+            return (Get-ItemProperty -Path $keyInstall4j_x64).$name0fRegisteryKey   
+        }
+        
+    }
+}
+$restultPathInstallGOMCSuite_x64 = get-pathInstallGOMCSuite_x64
+
+function get-pathInstallGOMCSuite_x86{
+    $keyInstall4j_x86 = 'HKLM:\SOFTWARE\WOW6432Node\ej-technologies\install4j\installations'
+    $keyIsPrensent = Test-Path $keyInstall4j_x86
+
+    if ( $keyIsPrensent -eq "True"){
+        
+        $name0fRegisteryKey = 'instdir6855-0348-7121-3187'
+        $instdirPath = (Get-ItemProperty -Path $keyInstall4j_x86).$name0fRegisteryKey
+        
+        if($instdirPath.Length -eq 0){
+        
+        }else{
+            return (Get-ItemProperty -Path $keyInstall4j_x86).$name0fRegisteryKey   
+        }
+        
+    }
+}
+$restultPathInstallGOMCSuite_x86 = get-pathInstallGOMCSuite_x86
+
+function get-pathInstallshield_x86{
+    $keyInstallshield_x86 = 'HKLM:\SOFTWARE\WOW6432Node\OMC Gervais\Logiciels OMC Gervais'
+    $keyIsPrensent = Test-Path $keyInstallshield_x86
+
+    if ( $keyIsPrensent -eq "True"){
+        
+        $name0fRegisteryKey = 'install.targetdir'
+        $instdirPath = (Get-ItemProperty -Path $keyInstallshield_x86).$name0fRegisteryKey
+        
+        if($instdirPath.Length -eq 0){
+        
+        }else{
+            return (Get-ItemProperty -Path $keyInstallshield_x86).$name0fRegisteryKey   
+        }
+        
+    }
+}
+$restultpathInstallshield_x86 = get-pathInstallshield_x86
+
+function get-dataDirGOMCSuite_POS{
+        
+    $DSN_Name = convertfrom-stringdata (get-content $restultPathInstallGOMCSuite_x64'\.install4j\response.varfile' -raw)
+    $DSN_Name =  $DSN_Name.'posDsn'
+    return $DSN_Name
+}
+ 
+function get-dataDirGOMCSuite_GOMC{
+        
+    $DSN_Name = convertfrom-stringdata (get-content $restultPathInstallGOMCSuite_x64'\.install4j\response.varfile' -raw)
+    $DSN_Name =  $DSN_Name.'gomcDsn'
+    return $DSN_Name
+}
+
+$DSN_NameGOMC = get-dataDirGOMCSuite_GOMC
+$DSN_NamePOS = get-dataDirGOMCSuite_POS
+
+if ($DSN_NameGOMC.Length -gt 0){
+    
+    ODBCConnection -dsn "$DSN_NameGOMC;Uid=dba;Pwd=sql" -query "select dateformat(min(ticket.tic_chrono),'yyyy') as DateTicket from ticket"
+
+}
+
+if($DSN_NamePOS.Length -gt 0){
+    
+    ODBCConnection -dsn "$DSN_NamePOS;Uid=dba;Pwd=sql" -query "select dateformat(min(ticket.tic_chrono),'yyyy') as DateTicket from ticket"
+
+}
