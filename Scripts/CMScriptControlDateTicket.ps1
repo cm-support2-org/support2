@@ -7,7 +7,6 @@ Change Log
 $ExitCode = 0
 #Verification si le fichier existe. S'il existe pas creation
 $fileToMessage = "$env:TEMP\CMErrorDateTicket.txt"
-$dateLotCMD = ""
 
 if (Test-Path $fileToMessage -PathType leaf)
 {
@@ -77,12 +76,12 @@ Function ODBCConnection {
                 $diffAnnee = $today -$DateTicket
                 
                if ($diffAnnee -gt 2){
-                $lbvalide = $false
+                    $lbvalide = $false
 
-                Add-Content $fileToMessage "---------------------------------------------------------------------------"	            
-                Add-Content $fileToMessage "We advise you to purify the tickets."
-                Add-Content $fileToMessage "Data is present from: $($Row.DateTicket)"
-	            Add-Content $fileToMessage "---------------------------------------------------------------------------"
+                    Add-Content $fileToMessage "---------------------------------------------------------------------------"	            
+                    Add-Content $fileToMessage "We advise you to purify the tickets."
+                    Add-Content $fileToMessage "Data is present from: $($Row.DateTicket)"
+	                Add-Content $fileToMessage "---------------------------------------------------------------------------"
 
                 }else{
 
@@ -114,69 +113,12 @@ Function ODBCConnection {
      
     } 
   
-    exit $ExitCode
+    #exit $ExitCode
 }
 
 #=========================================================
 #FUNCTION
 #=========================================================
-function get-pathInstallGOMCSuite_x64{
-    $keyInstall4j_x64 = 'HKLM:\SOFTWARE\ej-technologies\install4j\installations'
-    $keyIsPrensent = Test-Path $keyInstall4j_x64
-
-    if ( $keyIsPrensent -eq "True"){
-        
-        $name0fRegisteryKey = 'instdir6281-3708-5137-9831'
-        $instdirPath = (Get-ItemProperty -Path $keyInstall4j_x64).$name0fRegisteryKey
-        
-        if($instdirPath.Length -eq 0){
-        
-        }else{
-            return (Get-ItemProperty -Path $keyInstall4j_x64).$name0fRegisteryKey   
-        }
-        
-    }
-}
-$restultPathInstallGOMCSuite_x64 = get-pathInstallGOMCSuite_x64
-
-function get-pathInstallGOMCSuite_x86{
-    $keyInstall4j_x86 = 'HKLM:\SOFTWARE\WOW6432Node\ej-technologies\install4j\installations'
-    $keyIsPrensent = Test-Path $keyInstall4j_x86
-
-    if ( $keyIsPrensent -eq "True"){
-        
-        $name0fRegisteryKey = 'instdir6855-0348-7121-3187'
-        $instdirPath = (Get-ItemProperty -Path $keyInstall4j_x86).$name0fRegisteryKey
-        
-        if($instdirPath.Length -eq 0){
-        
-        }else{
-            return (Get-ItemProperty -Path $keyInstall4j_x86).$name0fRegisteryKey   
-        }
-        
-    }
-}
-$restultPathInstallGOMCSuite_x86 = get-pathInstallGOMCSuite_x86
-
-function get-pathInstallshield_x86{
-    $keyInstallshield_x86 = 'HKLM:\SOFTWARE\WOW6432Node\OMC Gervais\Logiciels OMC Gervais'
-    $keyIsPrensent = Test-Path $keyInstallshield_x86
-
-    if ( $keyIsPrensent -eq "True"){
-        
-        $name0fRegisteryKey = 'install.targetdir'
-        $instdirPath = (Get-ItemProperty -Path $keyInstallshield_x86).$name0fRegisteryKey
-        
-        if($instdirPath.Length -eq 0){
-        
-        }else{
-            return (Get-ItemProperty -Path $keyInstallshield_x86).$name0fRegisteryKey   
-        }
-        
-    }
-}
-$restultpathInstallshield_x86 = get-pathInstallshield_x86
-
 function get-dataDirGOMCSuite_POS{
         
     $DSN_Name = convertfrom-stringdata (get-content $restultPathInstallGOMCSuite_x64'\.install4j\response.varfile' -raw)
@@ -191,17 +133,83 @@ function get-dataDirGOMCSuite_GOMC{
     return $DSN_Name
 }
 
-$DSN_NameGOMC = get-dataDirGOMCSuite_GOMC
-$DSN_NamePOS = get-dataDirGOMCSuite_POS
+function get-pathInstallGOMCSuite_x64([ref]$DSN_NameGOMC, [ref]$DSN_NamePOS){
+    $keyInstall4j_x64 = 'HKLM:\SOFTWARE\ej-technologies\install4j\installations'
+    $keyIsPrensent = Test-Path $keyInstall4j_x64
+    
+    if ( $keyIsPrensent -eq "True"){
+        
+        $name0fRegisteryKey = 'instdir6281-3708-5137-9831'
+        $instdirPath = (Get-ItemProperty -Path $keyInstall4j_x64).$name0fRegisteryKey
+        
+        if($instdirPath.Length -eq 0){
+        
+        }else{
+            $DSN_NameGOMC = get-dataDirGOMCSuite_GOMC
+            $DSN_NamePOS = get-dataDirGOMCSuite_POS
+            return (Get-ItemProperty -Path $keyInstall4j_x64).$name0fRegisteryKey   
+        }
+        
+    }
+}
+$restultPathInstallGOMCSuite_x64 = get-pathInstallGOMCSuite_x64 ([ref]$DSN_NameGOMC) ([ref]$DSN_NamePOS)
+
+function get-pathInstallGOMCSuite_x86([ref]$DSN_NameGOMC, [ref]$DSN_NamePOS){
+    $keyInstall4j_x86 = 'HKLM:\SOFTWARE\WOW6432Node\ej-technologies\install4j\installations'
+    $keyIsPrensent = Test-Path $keyInstall4j_x86
+
+    if ( $keyIsPrensent -eq "True"){
+        
+        $name0fRegisteryKey = 'instdir6855-0348-7121-3187'
+        $instdirPath = (Get-ItemProperty -Path $keyInstall4j_x86).$name0fRegisteryKey
+        
+        if($instdirPath.Length -eq 0){
+        
+        }else{
+            $DSN_NameGOMC = get-dataDirGOMCSuite_GOMC
+            $DSN_NamePOS = get-dataDirGOMCSuite_POS
+            return (Get-ItemProperty -Path $keyInstall4j_x86).$name0fRegisteryKey   
+        }
+        
+    }
+}
+$restultPathInstallGOMCSuite_x86 = get-pathInstallGOMCSuite_x86 ([ref]$DSN_NameGOMC) ([ref]$DSN_NamePOS)
+
+function get-pathInstallshield_x86{
+    $keyInstallshield_x86 = 'HKLM:\SOFTWARE\WOW6432Node\OMC Gervais\Logiciels OMC Gervais'
+    $keyIsPrensent = Test-Path $keyInstallshield_x86
+
+    if ( $keyIsPrensent -eq "True"){
+        
+        $name0fRegisteryKey = 'install.targetdir'
+        $instdirPath = (Get-ItemProperty -Path $keyInstallshield_x86).$name0fRegisteryKey
+        
+        if($instdirPath.Length -eq 0){
+        
+        }else{
+            $DSN_NameGOMC = get-dataDirGOMCSuite_GOMC
+            $DSN_NamePOS = get-dataDirGOMCSuite_POS
+            return (Get-ItemProperty -Path $keyInstallshield_x86).$name0fRegisteryKey   
+        }
+        
+    }
+}
+$restultpathInstallshield_x86 = get-pathInstallshield_x86
 
 if ($DSN_NameGOMC.Length -gt 0){
     
+    "----------------------------------------"
+    "GOMC"
+    "----------------------------------------"
     ODBCConnection -dsn "$DSN_NameGOMC;Uid=dba;Pwd=sql" -query "select dateformat(min(ticket.tic_chrono),'yyyy') as DateTicket from ticket"
-
 }
 
 if($DSN_NamePOS.Length -gt 0){
     
+    "----------------------------------------"
+    "POS"
+    "----------------------------------------"
     ODBCConnection -dsn "$DSN_NamePOS;Uid=dba;Pwd=sql" -query "select dateformat(min(ticket.tic_chrono),'yyyy') as DateTicket from ticket"
 
 }
+Exit $LASTEXITCODE
