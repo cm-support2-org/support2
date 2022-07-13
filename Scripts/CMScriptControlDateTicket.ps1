@@ -119,61 +119,57 @@ Function ODBCConnection {
 #=========================================================
 #FUNCTION
 #=========================================================
-function get-dataDirGOMCSuite_POS{
-        
-    $DSN_Name = convertfrom-stringdata (get-content $restultPathInstallGOMCSuite_x64'\.install4j\response.varfile' -raw)
-    $DSN_Name =  $DSN_Name.'posDsn'
-    return $DSN_Name
-}
- 
-function get-dataDirGOMCSuite_GOMC{
-        
-    $DSN_Name = convertfrom-stringdata (get-content $restultPathInstallGOMCSuite_x64'\.install4j\response.varfile' -raw)
-    $DSN_Name =  $DSN_Name.'gomcDsn'
-    return $DSN_Name
-}
+function get-pathInstallGOMCSuite(){
 
-function get-pathInstallGOMCSuite_x64([ref]$DSN_NameGOMC, [ref]$DSN_NamePOS){
     $keyInstall4j_x64 = 'HKLM:\SOFTWARE\ej-technologies\install4j\installations'
-    $keyIsPrensent = Test-Path $keyInstall4j_x64
-    
-    if ( $keyIsPrensent -eq "True"){
-        
-        $name0fRegisteryKey = 'instdir6281-3708-5137-9831'
-        $instdirPath = (Get-ItemProperty -Path $keyInstall4j_x64).$name0fRegisteryKey
-        
-        if($instdirPath.Length -eq 0){
-        
-        }else{
-            $DSN_NameGOMC = get-dataDirGOMCSuite_GOMC
-            $DSN_NamePOS = get-dataDirGOMCSuite_POS
-            return (Get-ItemProperty -Path $keyInstall4j_x64).$name0fRegisteryKey   
-        }
-        
-    }
-}
-$restultPathInstallGOMCSuite_x64 = get-pathInstallGOMCSuite_x64 ([ref]$DSN_NameGOMC) ([ref]$DSN_NamePOS)
-
-function get-pathInstallGOMCSuite_x86([ref]$DSN_NameGOMC, [ref]$DSN_NamePOS){
     $keyInstall4j_x86 = 'HKLM:\SOFTWARE\WOW6432Node\ej-technologies\install4j\installations'
-    $keyIsPrensent = Test-Path $keyInstall4j_x86
+    $instdirPath = ''
 
+   
+    #Est ce qu'une clé x64 est présente ?
+    $keyIsPrensent = Test-Path $keyInstall4j_x64
     if ( $keyIsPrensent -eq "True"){
+    
+        #Oui
+        $instdirPath = (Get-ItemProperty -Path $keyInstall4j_x64).'instdir6281-3708-5137-9831'
+
+    } else {
+
+        #Non
+        #Est ce qu'une clé x86 est présente ?    
+        $keyIsPrensent = Test-Path $keyInstall4j_x86
+        if ( $keyIsPrensent -eq "True") {
         
-        $name0fRegisteryKey = 'instdir6855-0348-7121-3187'
-        $instdirPath = (Get-ItemProperty -Path $keyInstall4j_x86).$name0fRegisteryKey
-        
-        if($instdirPath.Length -eq 0){
-        
-        }else{
-            $DSN_NameGOMC = get-dataDirGOMCSuite_GOMC
-            $DSN_NamePOS = get-dataDirGOMCSuite_POS
-            return (Get-ItemProperty -Path $keyInstall4j_x86).$name0fRegisteryKey   
+            #Oui
+            $instdirPath = (Get-ItemProperty -Path $keyInstall4j_x86).'instdir6855-0348-7121-3187'
         }
-        
     }
+
+    # sortir si le chemin d'installation n'est pas present
+    if($instdirPath.Length -eq 0){
+        return
+    }
+
+    $DSN_Name_GOMC = convertfrom-stringdata (get-content $instdirPath'\.install4j\response.varfile' -raw)        
+    $DSN_Name_GOMC =  $DSN_Name_GOMC.'gomcDsn'
+                
+    $DSN_Name_POS = convertfrom-stringdata (get-content $instdirPath'\.install4j\response.varfile' -raw)
+    $DSN_Name_POS =  $DSN_Name_POS.'posDsn'
+    
+
+    #return 
+    $DSN_Name_GOMC
+    $DSN_Name_POS
+    $instdirPath       
+
+} 
+
+$resultInfoInstallGomcSuite = get-pathInstallGOMCSuite
+if ($resultInfoInstallGomcSuite -is [array] ){
+    $DSN_NameGOMC = $resultInfoInstallGomcSuite[0]
+    $DSN_NamePOS = $resultInfoInstallGomcSuite[1]
+    $pathInstall = $resultInfoInstallGomcSuite[2]
 }
-$restultPathInstallGOMCSuite_x86 = get-pathInstallGOMCSuite_x86 ([ref]$DSN_NameGOMC) ([ref]$DSN_NamePOS)
 
 function get-pathInstallshield_x86{
     $keyInstallshield_x86 = 'HKLM:\SOFTWARE\WOW6432Node\OMC Gervais\Logiciels OMC Gervais'
@@ -189,12 +185,22 @@ function get-pathInstallshield_x86{
         }else{
             $DSN_NameGOMC = get-dataDirGOMCSuite_GOMC
             $DSN_NamePOS = get-dataDirGOMCSuite_POS
-            return (Get-ItemProperty -Path $keyInstallshield_x86).$name0fRegisteryKey   
+                        
+            #return
+            $DSN_NameGOMC
+            $DSN_NamePOS
+            $instdirPath
         }
         
     }
 }
-$restultpathInstallshield_x86 = get-pathInstallshield_x86
+
+$resultInfoInstallInstallshield = get-pathInstallshield_x86
+if ($resultInfoInstallInstallshield -is [array]){
+    $DSN_NameGOMC = $resultInfoInstallInstallshield[0]
+    $DSN_NamePOS = $resultInfoInstallInstallshield[1]
+    $pathInstall = $resultInfoInstallInstallshield[2]
+}
 
 if ($DSN_NameGOMC.Length -gt 0){
     
@@ -206,6 +212,7 @@ if ($DSN_NameGOMC.Length -gt 0){
 
 if($DSN_NamePOS.Length -gt 0){
     
+    ""
     "----------------------------------------"
     "POS"
     "----------------------------------------"
