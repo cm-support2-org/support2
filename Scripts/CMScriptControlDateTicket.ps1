@@ -113,7 +113,7 @@ Function ODBCConnection {
      
     } 
   
-    #exit $ExitCode
+    exit $ExitCode
 }
 
 #=========================================================
@@ -194,7 +194,7 @@ function get-pathInstallshield_x86{
             if ($keyODBCGomcPos -eq 'True'){
                 $DSN_NamePOS = (Get-ItemProperty -Path $keyODBCGomcPosIsPrensent).DatabaseName
             }
-                                    
+
             #return
             $DSN_NameGOMC
             $DSN_NamePOS
