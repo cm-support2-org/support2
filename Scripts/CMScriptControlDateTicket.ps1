@@ -191,8 +191,8 @@ function get-pathInstallshield_x86{
                 $DSN_NameGOMC = (Get-ItemProperty -Path $keyODBCGomc).DatabaseName
             }
 
-            if ($keyODBCGomcPos -eq 'True'){
-                $DSN_NamePOS = (Get-ItemProperty -Path $keyODBCGomcPosIsPrensent).DatabaseName
+            if ($keyODBCGomcPosIsPrensent -eq 'True'){
+                $DSN_NamePOS = (Get-ItemProperty -Path $keyODBCGomcPos).DatabaseName
             }
 
             #return
