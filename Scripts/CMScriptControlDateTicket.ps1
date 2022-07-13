@@ -182,9 +182,19 @@ function get-pathInstallshield_x86{
         if($instdirPath.Length -eq 0){
         
         }else{
-            $DSN_NameGOMC = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\ODBC\ODBC.INI\OMC_GESCOM').DatabaseName
-            $DSN_NamePOS = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\ODBC\ODBC.INI\OMC_RESTAU').DatabaseName
-                        
+            $keyODBCGomc = 'HKLM:\SOFTWARE\WOW6432Node\ODBC\ODBC.INI\OMC_GESCOM'
+            $keyODBCGomcPos = 'HKLM:\SOFTWARE\WOW6432Node\ODBC\ODBC.INI\OMC_RESTAU'
+            $keyODBCGomcIsPrensent = Test-Path $keyODBCGomc
+            $keyODBCGomcPosIsPrensent = Test-Path $keyODBCGomcPos
+
+            if ($keyODBCGomcIsPrensent -eq 'True'){
+                $DSN_NameGOMC = (Get-ItemProperty -Path $keyODBCGomc).DatabaseName
+            }
+
+            if ($keyODBCGomcPos -eq 'True'){
+                $DSN_NamePOS = (Get-ItemProperty -Path $keyODBCGomcPosIsPrensent).DatabaseName
+            }
+                                    
             #return
             $DSN_NameGOMC
             $DSN_NamePOS
