@@ -164,11 +164,11 @@ function get-pathInstallGOMCSuite(){
 
 } 
 
-$resultInfoInstallGomcSuite = get-pathInstallGOMCSuite
-if ($resultInfoInstallGomcSuite -is [array] ){
-    $DSN_NameGOMC = $resultInfoInstallGomcSuite[0]
-    $DSN_NamePOS = $resultInfoInstallGomcSuite[1]
-    $pathInstall = $resultInfoInstallGomcSuite[2]
+$resultInfoInstall = get-pathInstallGOMCSuite
+if ($resultInfoInstall -is [array] ){
+    $DSN_NameGOMC = $resultInfoInstall[0]
+    $DSN_NamePOS = $resultInfoInstall[1]
+    $pathInstall = $resultInfoInstall[2]
 }
 
 function get-pathInstallshield_x86{
@@ -177,29 +177,27 @@ function get-pathInstallshield_x86{
 
     if ( $keyIsPrensent -eq "True"){
         
-        $name0fRegisteryKey = 'install.targetdir'
-        $instdirPath = (Get-ItemProperty -Path $keyInstallshield_x86).$name0fRegisteryKey
+        $instdirPath = (Get-ItemProperty -Path $keyInstallshield_x86).'install.targetdir'
         
         if($instdirPath.Length -eq 0){
         
         }else{
-            $DSN_NameGOMC = get-dataDirGOMCSuite_GOMC
-            $DSN_NamePOS = get-dataDirGOMCSuite_POS
+            $DSN_NameGOMC = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\ODBC\ODBC.INI\OMC_GESCOM').DatabaseName
+            $DSN_NamePOS = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\ODBC\ODBC.INI\OMC_RESTAU').DatabaseName
                         
             #return
             $DSN_NameGOMC
             $DSN_NamePOS
             $instdirPath
         }
-        
     }
 }
 
-$resultInfoInstallInstallshield = get-pathInstallshield_x86
-if ($resultInfoInstallInstallshield -is [array]){
-    $DSN_NameGOMC = $resultInfoInstallInstallshield[0]
-    $DSN_NamePOS = $resultInfoInstallInstallshield[1]
-    $pathInstall = $resultInfoInstallInstallshield[2]
+$restultpathInstallshield = get-pathInstallshield_x86
+if ($restultpathInstallshield -is [array]){
+    $DSN_NameGOMC = $restultpathInstallshield[0]
+    $DSN_NamePOS = $restultpathInstallshield[1]
+    $pathInstall = $restultpathInstallshield[2]
 }
 
 if ($DSN_NameGOMC.Length -gt 0){
