@@ -1,3 +1,5 @@
+//Information
+//Permet d'exporter pour chaque client si un contrat et actif, non actif,
 select
     vue_tiers.tie_code as Code_Client,
     vue_dirigeant.col_nom +' '+ vue_dirigeant.col_prenom as Nom_Prenom_Dirigeant,
