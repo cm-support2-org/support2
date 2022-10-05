@@ -1,0 +1,19 @@
+//Affiche la liste des articles en fonction de la classe de magasin
+
+Select
+    article.art_reference,
+    article.art_designation, 
+    string('(' + article.art_reference + ') ' + article.art_designation)
+From
+    article,
+    sref_article, 
+    plu_sref,
+    classe_magasin
+Where
+    article.art_id = sref_article.art_id and
+    article.art_publisher = sref_article.art_publisher and
+    plu_sref.sra_id = sref_article.sra_id and
+    plu_sref.sra_publisher = sref_article.sra_publisher and
+    plu_sref.clamag_id = classe_magasin.clamag_id and
+    plu_sref.clamag_publisher = classe_magasin.clamag_publisher and
+    classe_magasin.clamag_code = 'CL'
