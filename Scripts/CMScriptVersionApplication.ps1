@@ -82,16 +82,20 @@ If ($restultPathInstallGOMCSuite_x64 -ne "nothing") {
       #Decoupage de la version par morceaux 
       $x = $versionProgrammeRestau 
 
-      $tag1 = $x.split(",",3)[0]
-      $tag2 = $x.split(",",3)[1]
-      $tag3 = $x.split(",",4)[2]
-      $tag4 = $x.split(",",5)[3]
+      $tag1 = $x.split(".",3)[0]
+      $tag2 = $x.split(".",3)[1]
+      $tag3 = $x.split(".",4)[2]
+      $tag4 = $x.split(".",5)[3]
 
       #convertion du chiffre de la version en lettre
-      for ($letter= 0; $letter-lt $tag4.Length; $letter++)
-      {
-        $versionletter = [char](65 + $tag4 -1)
-      }
+      if ($tag4 -ne "0" ){
+        for ($letter= 0; $letter-lt $tag4.Length; $letter++)
+        {
+          $versionletter = [char](65 + $tag4 -1)
+        }    
+        }else{
+          $versionletter = $tag4
+        }
       
       #recontruction de la version avec la lettre 
       $versionProgrammeRestau = "$tag1.$tag2.$tag3.$versionletter"
