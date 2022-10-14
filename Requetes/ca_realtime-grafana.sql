@@ -505,9 +505,7 @@ BEGIN
         Select
             top 10 article.art_designation as Designation_Article,
             sum(detail_ticket.dtic_ca) as CA_Article_TTC,
-            sum(detail_ticket.dtic_ca_ht) as CA_Article_HT,
-            sum (detail_ticket.dtic_quantite) as Quantite,
-            ticket.tic_chrono
+            sum (detail_ticket.dtic_quantite) as Quantite
         From
             ticket,
             detail_ticket,
@@ -523,8 +521,7 @@ BEGIN
             ticket.tic_type = 1  and
             detail_ticket.dtic_type_detail = 1                                
         Group By
-            Designation_Article,
-            ticket.tic_chrono
+            Designation_Article
         Order By
             CA_Article_TTC desc
 
