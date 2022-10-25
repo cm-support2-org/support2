@@ -4,7 +4,7 @@ if exists(select 1 from sys.sysprocedure where proc_name = 'cm_enum_periode_tick
 end if;
 
 CREATE PROCEDURE "omc"."cm_enum_periode_ticket"(in dateLastYear t_boolean default null)
-
+    
 BEGIN
 declare dateTicket varchar(19);
 declare dateDebut varchar(30);
@@ -28,7 +28,8 @@ SET i = 1;
 if dateLastYear = 0 THEN 
     set dateTicket = DATEFORMAT(current date,'YYYY-MM-dd ');
 elseif dateLastYear = 1 then
-    set dateTicket = DATEFORMAT(DATEADD(year, -1, (select DATEADD(day,( DATEPART( Weekday , current date) - DATEPART( Weekday , DATEADD(year, -1, current date))), current date))), 'YYYY-MM-dd ')
+      --set dateTicket = DATEFORMAT(DATEADD(year, -1, (select DATEADD(day,( DATEPART( Weekday , current date) - DATEPART( Weekday , DATEADD(year, -1, current date))), current date))), 'YYYY-MM-dd ')
+      set dateTicket = DATEFORMAT(DATEADD(day,+1,dateadd(year, -1,current date)), 'YYYY-MM-dd ')
 end if;
 
 set timeDebut = '' + convert(varchar(2),i) + ':00:00';
@@ -82,7 +83,8 @@ END LOOP;
 select 
     case dateLastYear       
         when 0 then DATEFORMAT(chrono_ticket,'YYYY-MM-dd HH:mm:SS')
-        when 1 then dateformat(dateadd(year, +1, dateadd(day, DATEPART( Weekday , DATEADD(year, -1, chrono_ticket)) - DATEPART( Weekday ,( chrono_ticket)),chrono_ticket)),'YYYY-MM-dd HH:mm:SS')
+        --when 1 then dateformat(dateadd(year, +1, dateadd(day, DATEPART( Weekday , DATEADD(year, -1, chrono_ticket)) - DATEPART( Weekday ,( chrono_ticket)),chrono_ticket)),'YYYY-MM-dd HH:mm:SS')
+        when 1 then DATEADD(day,-1,dateadd(year, +1,chrono_ticket))
     else ''
     end as tic_date,
     count_ticket as Nbr_Ticket,
@@ -99,6 +101,77 @@ WHERE
 Group By chrono_ticket ,Nbr_Ticket;
 END;
 
+if exists(select 1 from sys.sysprocedure where proc_name = 'cm_enum_periode_ticket_month') then
+   drop procedure cm_enum_periode_ticket_month
+end if;
+
+CREATE PROCEDURE "omc"."cm_enum_periode_ticket_month"()
+
+BEGIN
+declare dateTicket varchar(19);
+declare dateDebut varchar(30);
+declare dateFin varchar(19);
+declare month varchar(8);
+declare monthResult varchar(8);
+declare i INTEGER ;
+declare DateTimeResult varchar(19);
+
+declare local temporary table t_result(
+    chrono_ticket varchar(30) null,
+    tic_id t_id null,
+    tic_publisher t_publisher null,
+    tic_type integer null,
+    )on commit delete rows;
+
+SET i = 1;
+
+WHILE i <= 12 LOOP
+
+if i < 10 then
+       set month = '0' + convert(varchar(2),i);
+       set i = '0' + i
+else
+       set month = convert(varchar(2),i) ;
+end if;
+
+set dateDebut = DATEFORMAT(current date,'YYYY-' + month+'-01 00:00');
+set dateFin = DATEFORMAT(current date,'YYYY-' + month + '-28 23:59');
+set monthResult = month;
+
+insert into t_result
+    
+    select 
+        monthResult,
+        ticket.tic_id,
+        ticket.tic_publisher,
+        ticket.tic_type
+    from
+        ticket,
+        detail_ticket        
+    Where
+        "ticket"."tic_id" = "detail_ticket"."tic_id" and
+        "ticket"."tic_publisher" = "detail_ticket"."tic_publisher" AND
+        ticket.tic_chrono >= dateDebut and "ticket"."tic_chrono" <= dateFin;
+SET i = i + 1;
+
+END LOOP;
+select 
+    monthResult,
+    DATEFORMAT(monthResult, 'yyyy-MM') as chrono,
+    coalesce("sum"("detail_ticket"."dtic_ca"),'') as "CA",
+    coalesce(sum (detail_ticket.dtic_quantite),'0') as Quantite
+from 
+    t_result,
+    detail_ticket
+WHERE 
+    t_result.tic_id = detail_ticket.tic_id
+    and t_result.tic_publisher = detail_ticket.tic_publisher
+    and t_result.tic_type = 1
+    and detail_ticket.dtic_type_detail = 1
+Group by chrono;
+END;
+
+
 if exists(select 1 from sys.sysprocedure where proc_name = 'omc_http_get_statistiques') then
    drop procedure omc_http_get_statistiques
 end if;
@@ -110,6 +183,8 @@ BEGIN
     declare ls_type_stat varchar(50);
     declare ls_time_to varchar(500);
     declare ls_time_from varchar(500);
+    declare CA_N decimal;
+    declare CA_N1 decimal;
     
     set ls_type_stat = HTTP_VARIABLE('statType') ;
     set ls_time_from = DATEFORMAT(dateadd( hour, +2 , HTTP_VARIABLE('time_from')),'YYYY-mm-dd HH:MM:SS');    
@@ -121,27 +196,27 @@ BEGIN
     if ls_type_stat = 'CaFamillesJ' then
 
         Select 
-            "famille"."fam_libelle" as "Designation",
-            "sum"("detail_ticket"."dtic_ca") as "CA",
-            "sum"("detail_ticket"."dtic_quantite") as "Quantite"
+            famille.fam_libelle as Designation,
+            sum(detail_ticket.dtic_ca) as CA,
+            sum(detail_ticket.dtic_quantite) as Quantite
         From 
-            "ticket",
+            ticket,
             detail_ticket left outer join detail_ticket_remise on
                 detail_ticket.dtic_id = detail_ticket_remise.dtic_id and
                 detail_ticket.dtic_publisher = detail_ticket_remise.dtic_publisher,
-            "famille",
+            famille,
              article
         Where 
-            "ticket"."tic_id" = "detail_ticket"."tic_id" and 
-            "ticket"."tic_publisher" = "detail_ticket"."tic_publisher" and 
-            "ticket"."tic_chrono" >= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00') and
-            "ticket"."tic_chrono" <= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 23:59:59') and
-             "detail_ticket"."art_id" = "article"."art_id" and 
-            "detail_ticket"."art_publisher" = "article"."art_publisher" and
-            "article"."fam_id" = "famille"."fam_id" and
-            "article"."fam_publisher" = "famille"."fam_publisher" and
-            "ticket"."tic_type" = 1 and
-            "detail_ticket"."dtic_type_detail" = 1 and            
+            ticket.tic_id = detail_ticket.tic_id and 
+            ticket.tic_publisher = detail_ticket.tic_publisher and 
+            ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and
+            ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59') and
+             detail_ticket.art_id = article.art_id and 
+            detail_ticket.art_publisher = article.art_publisher and
+            article.fam_id = famille.fam_id and
+            article.fam_publisher = famille.fam_publisher and
+            ticket.tic_type = 1 and
+            detail_ticket.dtic_type_detail = 1 and            
             EXISTS 
                 (
                     select 1 from ticket, 
@@ -149,15 +224,15 @@ BEGIN
                             detail_ticket.dtic_id = detail_ticket_remise.dtic_id and
                             detail_ticket.dtic_publisher = detail_ticket_remise.dtic_publisher
                     Where 
-                        "ticket"."tic_id" = "detail_ticket"."tic_id" and 
-                        "ticket"."tic_publisher" = "detail_ticket"."tic_publisher" and  
-                        "ticket"."tic_chrono" >= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00') and
-                        "ticket"."tic_chrono" <= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 23:59:59')
+                        ticket.tic_id = detail_ticket.tic_id and 
+                        ticket.tic_publisher = detail_ticket.tic_publisher and  
+                        ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and
+                        ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59')
                 )
         Group by 
             Designation          
         Order by 
-            "CA" desc
+            CA desc
 			
     -------------------------------------------------------------------------------
     -- Permet l'affichage des remise effectuées
@@ -165,9 +240,9 @@ BEGIN
     elseif ls_type_stat = 'DetailRemise' then
 
         Select 
-            "famille"."fam_libelle" as "Designation",
+            article.art_designation as Designation,
             sum(dticrem_montant_remise) as Montant_Remise,
-            "sum"("detail_ticket"."dtic_quantite") as "Quantite",
+            sum(detail_ticket.dtic_quantite) as Quantite,
             detail_ticket_remise.dticrem_taux_remise,
             case dticrem_type_remise
                 when 1 then 'Remise Client'
@@ -177,31 +252,31 @@ BEGIN
                 end as Type_Remise
                     
         From 
-            "ticket",
+            ticket,
             detail_ticket left outer join detail_ticket_remise on
                 detail_ticket.dtic_id = detail_ticket_remise.dtic_id and
                 detail_ticket.dtic_publisher = detail_ticket_remise.dtic_publisher,
-            "famille",
+            famille,
              article
         Where 
-            "ticket"."tic_id" = "detail_ticket"."tic_id" and 
-            "ticket"."tic_publisher" = "detail_ticket"."tic_publisher" and 
-            "ticket"."tic_chrono" >= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00') and
-            "ticket"."tic_chrono" <= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 23:59:59') and
-             "detail_ticket"."art_id" = "article"."art_id" and 
-            "detail_ticket"."art_publisher" = "article"."art_publisher" and
-            "article"."fam_id" = "famille"."fam_id" and
-            "article"."fam_publisher" = "famille"."fam_publisher" and
-            "ticket"."tic_type" = 1 and
-            "detail_ticket"."dtic_type_detail" = 1 and            
+            ticket.tic_id = detail_ticket.tic_id and 
+            ticket.tic_publisher = detail_ticket.tic_publisher and 
+            ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and
+            ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59') and
+             detail_ticket.art_id = article.art_id and 
+            detail_ticket.art_publisher = article.art_publisher and
+            article.fam_id = famille.fam_id and
+            article.fam_publisher = famille.fam_publisher and
+            ticket.tic_type = 1 and
+            detail_ticket.dtic_type_detail = 1 and            
             detail_ticket_remise.dticrem_taux_remise <> 0
         Group by 
             Designation,
             dticrem_taux_remise,
             dticrem_type_remise     
         Order by 
-            Designation asc,
-            dticrem_taux_remise desc
+            dticrem_taux_remise desc,
+            Designation desc
 
     -------------------------------------------------------------------------------
     -- Permet l'affiche des commandes saisie du jours
@@ -219,10 +294,10 @@ BEGIN
             article
         Where
             ticket.tic_type = 3 and
-            "ticket"."tic_id" = "detail_ticket"."tic_id" and
-            "ticket"."tic_publisher" = "detail_ticket"."tic_publisher" AND
-            "ticket"."tic_chrono" >= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00') and
-            "ticket"."tic_chrono" <= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 23:59:59') and
+            ticket.tic_id = detail_ticket.tic_id and
+            ticket.tic_publisher = detail_ticket.tic_publisher AND
+            ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and
+            ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59') and
             detail_ticket.art_id = article.art_id and
             detail_ticket.art_publisher = article.art_publisher
         Order By 
@@ -263,8 +338,8 @@ BEGIN
 			terminal.pdv_publisher = point_vente.pdv_publisher and
 			ticket.tic_type between 1 and 2 and			
 			detail_ticket.dtic_type_detail in ( 4, 6, 8, 9,25,26 ) and 
-			 "ticket"."tic_chrono" >= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00') and
-			 "ticket"."tic_chrono" <= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 23:59:59') and
+			 ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and
+			 ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59') and
 			abs(detail_ticket.dtic_acompte) <> 2 and
 			omc_f_autorise_voir( ticket.ter_id, ticket.ter_publisher, ticket.tic_chrono ) = 1
 		GROUP BY 
@@ -279,13 +354,13 @@ BEGIN
     -- Permet la récupération des ventes cumuler sur une heure
     ----------------------------------------------------------------
     elseif ls_type_stat = 'PeriodeTicket' then
-        call "cm_enum_periode_ticket"("dateLastYear" = 0)
+        call cm_enum_periode_ticket(dateLastYear = 0)
 		
 	-------------------------------------------------------------------------------------
     -- Permet la récupération des ventes cumuler sur une heure de l'année dernière
     -------------------------------------------------------------------------------------
     elseif ls_type_stat = 'PeriodeTicketN1' then
-        call"cm_enum_periode_ticket"("dateLastYear" = 1)
+        call cm_enum_periode_ticket(dateLastYear = 1)
 
     ----------------------------------------------------------------
     -- Permet la récupération des informations dans le jet
@@ -293,14 +368,14 @@ BEGIN
     elseif ls_type_stat = 'EventTicketJ' then   
         Select          
             evenement_context,
-            evenement_chrono,
+            dateformat(evenement_chrono, 'HH:mm:SS'),
             evenement_data_plaintext
         From 
-            omc_p_cert_read_journal("adt_chrono_debut" = "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00'),"adt_chrono_fin" = "DATEFORMAT"(current timestamp,'YYYY-MM-dd 23:59:59')) 
+            omc_p_cert_read_journal(adt_chrono_debut = DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00'),adt_chrono_fin = DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59')) 
         Where 
             (evenement_context = 'Ouverture Tiroir' or evenement_context = 'Annulation Ticket' or evenement_context = 'Suppression Ligne')
         Order By
-            evenement_chrono desc  
+            dateformat(evenement_chrono, 'HH:mm:SS') desc  
 
     ----------------------------------------------------------------
 	-- Permet l'affichage de la date du dernier ticket + le nom du caissier
@@ -309,7 +384,7 @@ BEGIN
   
           Select 
             top 1max(ticket.tic_chrono) as tic_chrono,
-           string("DATEFORMAT"(max(ticket.tic_chrono),'dd-MM-YYYY HH:mm:SS')+ ' / ' + utilisateur.uti_raisoc + '  ' + utilisateur.uti_prenom + ' ['+ utilisateur.uti_code +']' ) as Ticket
+           string(DATEFORMAT(max(ticket.tic_chrono),'dd-MM-YYYY HH:mm:SS')+ ' / ' + utilisateur.uti_raisoc + '  ' + utilisateur.uti_prenom + ' ['+ utilisateur.uti_code +']' ) as Ticket
             
         From 
             ticket,
@@ -378,8 +453,8 @@ BEGIN
                         Where
                             ticket.tic_id = detail_ticket.tic_id and
                             ticket.tic_publisher = detail_ticket.tic_publisher and
-                            "ticket"."tic_chrono" >= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00')) and
-                            "ticket"."tic_chrono" <= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and  
+                            ticket.tic_chrono >= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00')) and
+                            ticket.tic_chrono <= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and  
                             ticket.tic_type = 1  and
                             detail_ticket.dtic_type_detail = 1
                     )
@@ -390,8 +465,8 @@ BEGIN
                         From 
                             ticket 
                         Where 
-                            "ticket"."tic_chrono" >= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00')) and
-                            "ticket"."tic_chrono" <= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and
+                            ticket.tic_chrono >= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00')) and
+                            ticket.tic_chrono <= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and
                             ticket.tic_type = 1
                     )as t_montant
                 ) as total
@@ -402,14 +477,14 @@ BEGIN
     elseif ls_type_stat = 'StatsJ' then
 
         Select 
-            coalesce("sum"("detail_ticket"."dtic_ca"),'') as "CA",
+            coalesce(sum(detail_ticket.dtic_ca),'') as CA,
             coalesce(sum (detail_ticket.dtic_quantite),'0') as Quantite,
             (
                 Select 
                     count(*)
                 From 
                     ticket                  
-                Where 
+               Where 
                 	ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and
                 	ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59') and
                     ticket.tic_type = 1
@@ -431,16 +506,17 @@ BEGIN
     elseif ls_type_stat = 'StatsJN1' then
 
         Select 
-            coalesce("sum"("detail_ticket"."dtic_ca"),'') as "CA",
-            coalesce(sum (detail_ticket.dtic_quantite),'0') as Quantite,
+            coalesce(sum(detail_ticket.dtic_ca),0) as CA,
+            coalesce(sum (detail_ticket.dtic_quantite),0) as Quantite,
             (
                 Select 
                     count(*)
                 From 
                     ticket                  
                 Where 
-                	"ticket"."tic_chrono" >= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00')) and
-					"ticket"."tic_chrono" <= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and
+                	ticket.tic_chrono >= DATEFORMAT(DATEADD(day,+1,dateadd(year, -1,current date)), 'YYYY-MM-dd 00:00:00') and 
+					--ticket.tic_chrono <= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and
+                    ticket.tic_chrono <=DATEFORMAT(DATEADD(day,+1,dateadd(year, -1,current date)), 'YYYY-MM-dd ' + cast(current time as varchar(8))) and
                     ticket.tic_type = 1
             ) as Nbr_Ticket
         From 
@@ -448,11 +524,56 @@ BEGIN
             detail_ticket
         Where ticket.tic_id = detail_ticket.tic_id and
             ticket.tic_publisher = detail_ticket.tic_publisher AND
-        	"ticket"."tic_chrono" >= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00')) and
-            "ticket"."tic_chrono" <= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and
+        	--ticket.tic_chrono >= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00')) and
+            ticket.tic_chrono >= DATEFORMAT(DATEADD(day,+1,dateadd(year, -1,current date)), 'YYYY-MM-dd 00:00:00') and               
+            --ticket.tic_chrono <= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and
+            ticket.tic_chrono <= DATEFORMAT(DATEADD(day,+1,dateadd(year, -1,current date)), 'YYYY-MM-dd ' + cast(current time as varchar(8))) and
             ticket.tic_type = 1 and
             detail_ticket.dtic_type_detail = 1
-	
+
+    -------------------------------------------------------------------------------------------------------
+    -- Permet l'affichage la progression du CA
+    -------------------------------------------------------------------------------------------------------
+    elseif ls_type_stat = 'Progression' then
+    select ((  Select 
+            coalesce(sum(detail_ticket.dtic_ca),'') as CA       
+        From 
+            ticket,
+            detail_ticket
+        Where 
+			ticket.tic_id = detail_ticket.tic_id and
+            ticket.tic_publisher = detail_ticket.tic_publisher AND
+        	ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and
+        	ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59') and
+            ticket.tic_type = 1 and
+            detail_ticket.dtic_type_detail = 1)
+ -  (Select 
+            coalesce(sum(detail_ticket.dtic_ca),0) as CA          
+        From 
+            ticket,
+            detail_ticket
+        Where ticket.tic_id = detail_ticket.tic_id and
+            ticket.tic_publisher = detail_ticket.tic_publisher AND
+        	--ticket.tic_chrono >= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00')) and
+            ticket.tic_chrono >= DATEFORMAT(DATEADD(day,+1,dateadd(year, -1,current date)), 'YYYY-MM-dd 00:00:00') and               
+            --ticket.tic_chrono <= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and
+            ticket.tic_chrono <= DATEFORMAT(DATEADD(day,+1,dateadd(year, -1,current date)), 'YYYY-MM-dd ' + cast(current time as varchar(8))) and
+            ticket.tic_type = 1 and
+            detail_ticket.dtic_type_detail = 1
+        )) *100 / (Select 
+            coalesce(sum(detail_ticket.dtic_ca),0) as CA          
+        From 
+            ticket,
+            detail_ticket
+        Where ticket.tic_id = detail_ticket.tic_id and
+            ticket.tic_publisher = detail_ticket.tic_publisher AND
+        	--ticket.tic_chrono >= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00')) and
+            ticket.tic_chrono >= DATEFORMAT(DATEADD(day,+1,dateadd(year, -1,current date)), 'YYYY-MM-dd 00:00:00') and               
+            --ticket.tic_chrono <= DATEADD(year, -1, DATEFORMAT(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and
+            ticket.tic_chrono <= DATEFORMAT(DATEADD(day,+1,dateadd(year, -1,current date)), 'YYYY-MM-dd ' + cast(current time as varchar(8))) and
+            ticket.tic_type = 1 and
+            detail_ticket.dtic_type_detail = 1) as Progression
+
 	-------------------------------------------------------------------------------------------------------
     -- Permet l'affichage les encaissements par caissiers
     -------------------------------------------------------------------------------------------------------
@@ -460,25 +581,25 @@ BEGIN
 
           Select 
             string(utilisateur.uti_raisoc + '  ' + utilisateur.uti_prenom + ' ['+ utilisateur.uti_code +']') as Caissier,
-            "sum"("detail_ticket"."dtic_ca") as "CA",
-            "sum"("detail_ticket"."dtic_quantite") as "Quantite"
+            sum(detail_ticket.dtic_ca) as CA,
+            sum(detail_ticket.dtic_quantite) as Quantite
         From 
-            "ticket",
+            ticket,
             detail_ticket left outer join detail_ticket_remise on
                 detail_ticket.dtic_id = detail_ticket_remise.dtic_id and
                 detail_ticket.dtic_publisher = detail_ticket_remise.dtic_publisher,
             utilisateur,
              article
         Where 
-            "ticket"."tic_id" = "detail_ticket"."tic_id" and 
-            "ticket"."tic_publisher" = "detail_ticket"."tic_publisher" and 
-            "ticket"."tic_chrono" >= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00') and
-            "ticket"."tic_chrono" <= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 23:59:59') and
-             "detail_ticket"."art_id" = "article"."art_id" and 
-            "detail_ticket"."art_publisher" = "article"."art_publisher" and
+            ticket.tic_id = detail_ticket.tic_id and 
+            ticket.tic_publisher = detail_ticket.tic_publisher and 
+            ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and
+            ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59') and
+             detail_ticket.art_id = article.art_id and 
+            detail_ticket.art_publisher = article.art_publisher and
             utilisateur.uti_id = ticket.uti_id and
-            "ticket"."tic_type" = 1 and
-            "detail_ticket"."dtic_type_detail" = 1 and           
+            ticket.tic_type = 1 and
+            detail_ticket.dtic_type_detail = 1 and           
             EXISTS 
                 (
                     select 1 from ticket, 
@@ -486,17 +607,17 @@ BEGIN
                             detail_ticket.dtic_id = detail_ticket_remise.dtic_id and
                             detail_ticket.dtic_publisher = detail_ticket_remise.dtic_publisher
                     Where 
-                        "ticket"."tic_id" = "detail_ticket"."tic_id" and 
-                        "ticket"."tic_publisher" = "detail_ticket"."tic_publisher" and  
-                        "ticket"."tic_chrono" >= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00') and
-                        "ticket"."tic_chrono" <= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 23:59:59')
+                        ticket.tic_id = detail_ticket.tic_id and 
+                        ticket.tic_publisher = detail_ticket.tic_publisher and  
+                        ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and
+                        ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59')
                 )
         Group by 
             utilisateur.uti_raisoc,
             utilisateur.uti_code,  
             utilisateur.uti_prenom       
         Order by 
-            "CA" desc
+            CA desc
 
     ----------------------------------------------------------------
     -- Affichage du top10 des articles vendue
@@ -504,7 +625,7 @@ BEGIN
     elseif ls_type_stat = 'topSellArticles' then   
         Select
             top 10 article.art_designation as Designation_Article,
-            sum(detail_ticket.dtic_ca) as CA_Article_TTC,
+            sum(detail_ticket.dtic_ca) as CA_Article_TTC,          
             sum (detail_ticket.dtic_quantite) as Quantite
         From
             ticket,
@@ -513,9 +634,7 @@ BEGIN
         Where
             ticket.tic_id = detail_ticket.tic_id and
             ticket.tic_publisher = detail_ticket.tic_publisher and
-            --"ticket"."tic_chrono" >= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00') and
-            "ticket"."tic_chrono" >= ls_time_from and           
-            "ticket"."tic_chrono" <= "DATEFORMAT"(current timestamp,ls_time_to) and
+            ticket.tic_chrono > DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and           
             detail_ticket.art_id = article.art_id and    
             detail_ticket.art_publisher = article.art_publisher and    
             ticket.tic_type = 1  and
@@ -524,6 +643,56 @@ BEGIN
             Designation_Article
         Order By
             CA_Article_TTC desc
+    ----------------------------------------------------------------
+    -- Affichage du top10 des articles vendue
+    ---------------------------------------------------------------- 
+    elseif ls_type_stat = 'CaMonth' then   
+    select 
+        DATEFORMAT(ticket.tic_chrono, 'MM') as chrono,
+        coalesce(sum(detail_ticket.dtic_ca),'') as CA
+    From 
+        ticket,
+        detail_ticket
+    WHERE 
+        ticket.tic_id = detail_ticket.tic_id
+        and ticket.tic_publisher = detail_ticket.tic_publisher
+        and ticket.tic_type = 1
+        and detail_ticket.dtic_type_detail = 1 and
+        ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-01-01 00:00:00') and
+        ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-12-31 23:59:59')
+    Group by 
+        chrono
+    Order by
+        chrono asc
+
+    ----------------------------------------------------------------
+    -- Affichage des démarques
+    ---------------------------------------------------------------- 
+    elseif ls_type_stat = 'Demarque' then   
+    select 
+        dateformat(ticket.tic_chrono, 'HH:mm:SS') as chrono,
+        article.art_designation as Designation,
+        detail_ticket.dtic_quantite as Quantite,
+        sum(detail_ticket.dtic_ca) as CA
+    from 
+        ticket, 
+        detail_ticket,
+        article
+    where 
+        ticket.tic_id = detail_ticket.tic_id and 
+        ticket.tic_publisher = detail_ticket.tic_publisher and 
+        ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-MM-dd 00:00:00') and 
+        ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-MM-dd 23:59:59') and
+        article.art_id = detail_ticket.art_id and
+        article.art_publisher = detail_ticket.art_publisher and
+        dtic_type_detail = 14
+    Group by
+        chrono,
+        Designation,
+        Quantite
+    Order By      
+        CA desc,
+        Quantite desc
 
     ----------------------------------------------------------------
     -- Permet de savoir si la sauvegarde date de moins de 7 jour.
@@ -533,67 +702,6 @@ BEGIN
     elseif ls_type_stat = 'backupIsUpToDate' then   
     select omc_f_is_valide((Select date(cert_parametrage.cpar_chrono_backup) From cert_parametrage),dateadd( day,-7, now() )) as backup_date_is_up_to_date
     end if;
-END;
-
-
-if exists(select 1 from sys.sysprocedure where proc_name = 'omc_http_get') then
-   drop procedure omc_http_get
-end if;
-
-CREATE PROCEDURE "omc"."omc_http_get"( in "httpUrl" long varchar ) 
-result( 
-  "http_column" long varchar,
-  "http_value" long varchar,
-  "http_instance" integer ) 
-url '!httpUrl'
-type 'HTTP:GET'
-header 'User-Agent:SATest';
-
-if exists(select 1 from sys.sysprocedure where proc_name = 'omc_http_get_weather') then
-   drop procedure omc_http_get_weather
-end if;
-
-CREATE PROCEDURE "omc"."omc_http_get_weather"()
-
-BEGIN
-
-    -------------------------------------------------------------------------------------
-    --Récupération des info météo en rapport avec l'adresse postal du client.
-    -------------------------------------------------------------------------------------
-
-    declare chrono t_date;
-    declare urlForWeather varchar(2000);   
-    declare ls_type_stat varchar(50);
-
-    set ls_type_stat = HTTP_VARIABLE('statType') ;
-    set chrono =  current timestamp;
-    set urlForWeather = 'http://api.open-meteo.com/v1/forecast?latitude=43.23&longitude=6.08&daily=weathercode&timezone=Europe%2FLondon&start_date=' + dateformat(chrono , 'YYYY-mm-DD')+ '&end_date=' + dateformat(chrono , 'YYYY-mm-DD') + '';
-
-   
-    if exists ( select 1 from weather where wt_chrono = dateformat(chrono , 'YYYY-mm-DD')) then
-        
-    else
-        INSERT INTO weather
-        (wt_id, wt_publisher, wt_chrono, wt_json)
-        VALUES(null ,'a',dateformat(chrono , 'YYYY-mm-DD'),(select http_value from omc_http_get(urlForWeather) Where http_column = 'Body'));
-        commit
-    end if;
-
-    -------------------------------------------------------------------------------------
-    -- Permet la récupération des informations météo de l'annnée en cours
-    -- Avec la procèdure omc_http_get_weather on vérifié qu'une ligne de météo est présente.
-    -------------------------------------------------------------------------------------
-    if ls_type_stat = 'weatherJ' then
-        
-        select wt_json from weather where dateformat(wt_chrono,'YYYY-MM-dd') = DATEFORMAT(current timestamp,'YYYY-MM-dd')
-
-    -------------------------------------------------------------------------------------
-    -- Permet la récupération des informations météo de l'annnée dernière
-    -------------------------------------------------------------------------------------
-    elseif ls_type_stat = 'weatherJN1' then
-        select wt_json from weather where dateformat(wt_chrono,'YYYY-MM-dd') = dateadd(year, -1,DATEFORMAT(current timestamp,'YYYY-MM-dd'))
-    end if;    
-
 END;
 
 if exists(select 1 from sys.sysprocedure where proc_name = 'omc_p_every_1_hour') then
@@ -626,7 +734,6 @@ begin
    delete from weather where weather.wt_chrono < dateadd(year, -1,DATEFORMAT(current timestamp,'YYYY-MM-dd'))
 end;
 
-
 if exists( select 1 from sys.syswebservice where service_name='getStatistics' ) then 
 	drop service "getStatistics"
 end if;
@@ -636,7 +743,6 @@ if exists( select 1 from sys.syswebservice where service_name='getWeather' ) the
 	drop service "getWeather"
 end if;
 CREATE SERVICE "getWeather" TYPE 'RAW' AUTHORIZATION OFF USER "omc" METHODS 'HEAD,GET' AS call "omc_http_get_weather"();
-
 
 -------------------------------------------------------------------------------------
 -- Création de la table météo. On stock la météo du jour.
