@@ -32,7 +32,7 @@ BEGIN
     ----------------------------------------------------------------------------------------------------
     if ls_type_stat = 'CaFamillesJ' then
 
-        Select top 10
+        Select top 20
             famille.fam_libelle as Designation,
             sum(detail_ticket.dtic_ca) as CA,
             sum(detail_ticket.dtic_quantite) as Quantite
