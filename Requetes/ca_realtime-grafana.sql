@@ -1,4 +1,122 @@
-ALTER PROCEDURE "omc"."omc_http_get_statistiques"()
+
+if exists(select 1 from sys.sysprocedure where proc_name = 'cm_enum_periode_ticket') then
+   drop procedure cm_enum_periode_ticket
+end if;
+
+CREATE PROCEDURE "omc"."cm_enum_periode_ticket"(in dateLastYear t_boolean default null)
+    
+BEGIN
+    declare dateTicket varchar(19);
+    declare dateDebut varchar(30);
+    declare dateFin varchar(19);
+    declare timeDebut varchar(8);
+    declare timeFin varchar(8);
+    declare i INTEGER ;
+    declare DateTimeResult varchar(19);
+
+	DECLARE date1 LONG VARCHAR;
+    DECLARE date2 LONG VARCHAR;
+    DECLARE dateDiff LONG VARCHAR;
+
+   
+    declare local temporary table t_result(
+    chrono_ticket varchar(30) null,
+    count_ticket integer null,
+    tic_id t_id null,
+    tic_publisher t_publisher null,
+    tic_type integer null,
+    )on commit delete rows;
+
+    set i = 1;
+
+    set date1 = DATEPART( weekday , current date);
+    set date2 = DATEPART( weekday , dateadd(year, -1,current date));
+    set dateDiff = (date1 - date2) ;
+
+
+--Est ce que doit prendre la date de l'année dernière ?
+if dateLastYear = 0 THEN 
+    set dateTicket = DATEFORMAT(current date,'YYYY-MM-dd ');
+elseif dateLastYear = 1 then
+      --set dateTicket = DATEFORMAT(DATEADD(year, -1, (select DATEADD(day,( DATEPART( Weekday , current date) - DATEPART( Weekday , DATEADD(year, -1, current date))), current date))), 'YYYY-MM-dd ')
+      set dateTicket = DATEFORMAT(DATEADD(day,+(select dateDiff from dummy),dateadd(year, -1,current date)), 'YYYY-MM-dd ')
+end if;
+
+set timeDebut = '' + convert(varchar(2),i) + ':00:00';
+set timeFin = '' + convert(varchar(2),i) + ':59:59';
+
+WHILE i <= 23 LOOP
+
+if i < 10 then
+       set timeDebut = '0' + convert(varchar(2),i) + ':00:00';
+       set timeFin = '0' + convert(varchar(2),i) + ':59:59';
+       set i = '0' + i
+else
+       set timeDebut = convert(varchar(2),i) + ':00:00';
+       set timeFin = convert(varchar(2),i) + ':59:59';
+end if;
+
+set dateDebut = dateTicket + timeDebut;
+set dateFin = dateTicket + timeFin;
+set DateTimeResult = dateFin + convert(varchar(2),i);
+insert into t_result
+    
+    select 
+        DateTimeResult,
+		(Select 
+            count(*) as Nbr_Ticket
+        From 
+            ticket
+            
+        Where 			
+        	ticket.tic_chrono >= dateDebut and "ticket"."tic_chrono" <= dateFin and
+            ticket.tic_type = 1) as Nbr_Ticket,
+           
+        ticket.tic_id,
+        ticket.tic_publisher,
+        ticket.tic_type
+    from
+        ticket,
+        detail_ticket        
+    Where
+        "ticket"."tic_id" = "detail_ticket"."tic_id" and
+        "ticket"."tic_publisher" = "detail_ticket"."tic_publisher" AND
+        ticket.tic_chrono >= dateDebut and "ticket"."tic_chrono" <= dateFin     
+    group by
+        ticket.tic_id,
+        ticket.tic_publisher,
+        tic_type;
+SET i = i + 1;
+
+END LOOP;
+
+select 
+    case dateLastYear       
+        when 0 then DATEFORMAT(chrono_ticket,'YYYY-MM-dd HH:mm:SS')
+        --when 1 then dateformat(dateadd(year, +1, dateadd(day, DATEPART( Weekday , DATEADD(year, -1, chrono_ticket)) - DATEPART( Weekday ,( chrono_ticket)),chrono_ticket)),'YYYY-MM-dd HH:mm:SS')
+        when 1 then DATEADD(day,-(select dateDiff from dummy),dateadd(year, +1,chrono_ticket))
+    else ''
+    end as tic_date,
+    count_ticket as Nbr_Ticket,
+    coalesce("sum"("detail_ticket"."dtic_ca"),'') as "CA",
+    coalesce(sum (detail_ticket.dtic_quantite),'0') as Quantite
+from 
+    t_result,
+    detail_ticket
+WHERE 
+    t_result.tic_id = detail_ticket.tic_id
+    and t_result.tic_publisher = detail_ticket.tic_publisher
+    and t_result.tic_type = 1
+    and detail_ticket.dtic_type_detail = 1
+Group By chrono_ticket ,Nbr_Ticket;
+END;
+
+
+if exists(select 1 from sys.sysprocedure where proc_name = 'omc_http_get_statistiques') then
+   drop procedure omc_http_get_statistiques
+end if;
+
+CREATE PROCEDURE "omc"."omc_http_get_statistiques"()
 
     --------------------------------------------------------------------------
     -- Cette procèdure regroupe plusieurs type de stats
@@ -32,7 +150,7 @@ BEGIN
     ----------------------------------------------------------------------------------------------------
     if ls_type_stat = 'CaFamillesJ' then
 
-        Select top 20
+        Select 
             famille.fam_libelle as Designation,
             sum(detail_ticket.dtic_ca) as CA,
             sum(detail_ticket.dtic_quantite) as Quantite
@@ -538,4 +656,117 @@ BEGIN
     elseif ls_type_stat = 'backupIsUpToDate' then   
     select omc_f_is_valide((Select date(cert_parametrage.cpar_chrono_backup) From cert_parametrage),dateadd( day,-7, now() )) as backup_date_is_up_to_date
     end if;
-END
+END;
+
+if exists(select 1 from sys.sysprocedure where proc_name = 'omc_http_get') then
+   drop procedure omc_http_get
+end if;
+
+CREATE PROCEDURE "omc"."omc_http_get"( in "httpUrl" long varchar ) 
+result( 
+  "http_column" long varchar,
+  "http_value" long varchar,
+  "http_instance" integer ) 
+url '!httpUrl'
+type 'HTTP:GET'
+header 'User-Agent:SATest';
+
+if exists(select 1 from sys.sysprocedure where proc_name = 'omc_http_get_weather') then
+   drop procedure omc_http_get_weather
+end if;
+
+CREATE PROCEDURE "omc"."omc_http_get_weather"()
+
+BEGIN
+
+    //Récupération des info météo via le code postal de la société
+    declare chrono t_date;
+    declare urlForWeather varchar(2000);   
+    declare ls_type_stat varchar(50);
+    declare postalCode varchar(5);
+
+    set ls_type_stat = HTTP_VARIABLE('statType') ;   
+    --set urlForWeather = 'http://api.open-meteo.com/v1/forecast?latitude=43.23&longitude=6.08&daily=weathercode&timezone=Europe%2FLondon&start_date=' + dateformat(chrono , 'YYYY-mm-DD')+ '&end_date=' + dateformat(chrono , 'YYYY-mm-DD') + '';
+    set postalCode = (select omc.societe.soc_codepostal from societe);    
+    set urlForWeather = 'https://api.openweathermap.org/data/2.5/weather?zip=' + postalCode + ',FR&appid=4829467b995488ac55585ae94e7845ad&units=metric&lang=fr';    
+    set chrono =  current timestamp;
+
+    if not exists ( select 1 from weather where wt_chrono = dateformat(chrono , 'YYYY-mm-DD')) then
+        INSERT INTO weather
+        (wt_id, wt_publisher, wt_chrono, wt_json)
+        VALUES(null ,'a',dateformat(chrono , 'YYYY-mm-DD'),(select http_value from omc_http_get(urlForWeather) Where http_column = 'Body'));
+        commit      
+    end if;
+
+    -------------------------------------------------------------------------------------
+    -- Permet la récupération des informations météo de l'annnée en cours
+    -- Avec la procèdure omc_http_get_weather on vérifié qu'une ligne de météo est présente.
+    -------------------------------------------------------------------------------------
+    if ls_type_stat = 'weatherJ' then
+        
+        select wt_json from weather where dateformat(wt_chrono,'YYYY-MM-dd') = DATEFORMAT(current timestamp,'YYYY-MM-dd')
+
+    -------------------------------------------------------------------------------------
+    -- Permet la récupération des informations météo de l'annnée dernière
+    -------------------------------------------------------------------------------------
+    elseif ls_type_stat = 'weatherJN1' then
+        select wt_json from weather where dateformat(wt_chrono,'YYYY-MM-dd') = dateadd(year, -1,DATEFORMAT(current timestamp,'YYYY-MM-dd'))
+    end if;    
+
+END;
+
+if exists(select 1 from sys.sysprocedure where proc_name = 'omc_p_every_1_hour') then
+   drop procedure omc_p_every_1_hour
+end if;
+
+CREATE PROCEDURE "omc"."omc_p_every_1_hour"()
+begin
+  -------------------------------------------------------
+  -- execution toutes les heures
+  -------------------------------------------------------
+
+  -- epuration histo badge
+  call omc_p_epure_histo_borne() ;
+
+  -- epuration pesees non rattachées à des lignes plus vieilles de 30 jours
+  call omc_p_scale_epure_pesee() ;
+
+  -- suppression des coupon d'avoir libres depuis plus de 7 jours afin de laisser le temps a omc_p_epure_ticket
+  delete from coupon_avoir
+  where coupon_avoir.copa_statut = 0 
+    and ( coalesce( coupon_avoir.copa_chrono_m, coupon_avoir.copa_chrono_c ) is null
+          OR
+          datediff( day, coalesce( coupon_avoir.copa_chrono_m, coupon_avoir.copa_chrono_c ), current timestamp ) > 7 ) ;
+
+  -- epuration des marquages des tickets (commandes client archivées 1003) dont le statut de préparation est passé en '+$' ou '-$' , supérieur à 15 jours car il ne seront jamais lu
+  call omc_p_epure_external_statut_preparation();
+
+  -- epuration des données météo. On garde 1 an d'historique
+   delete from weather where weather.wt_chrono < dateadd(year, -1,DATEFORMAT(current timestamp,'YYYY-MM-dd'))
+end;
+
+if exists( select 1 from sys.syswebservice where service_name='getStatistics' ) then 
+	drop service "getStatistics"
+end if;
+CREATE SERVICE "getStatistics" TYPE 'JSON' AUTHORIZATION OFF USER "omc" METHODS 'HEAD,GET' AS call "omc_http_get_statistiques"();
+
+if exists( select 1 from sys.syswebservice where service_name='getWeather' ) then 
+	drop service "getWeather"
+end if;
+CREATE SERVICE "getWeather" TYPE 'RAW' AUTHORIZATION OFF USER "omc" METHODS 'HEAD,GET' AS call "omc_http_get_weather"();
+
+
+-------------------------------------------------------------------------------------
+-- Création de la table météo. On stock la météo du jour.
+-------------------------------------------------------------------------------------
+if not exists( select * from sys.SYSTABLE where table_name='weather') then 
+CREATE TABLE "omc"."weather" (
+	"wt_id" "t_id" NOT NULL DEFAULT AUTOINCREMENT,
+	"wt_publisher" "t_publisher" NOT NULL,
+	"wt_chrono" "t_date" NOT NULL UNIQUE,
+	"wt_json" "t_texte" NOT NULL,
+	PRIMARY KEY ( "wt_id" ASC, "wt_publisher" ASC )
+) IN "system";
+
+end if;
+commit
