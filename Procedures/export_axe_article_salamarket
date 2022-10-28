@@ -6,8 +6,8 @@ in as_code_tarif t_code_classe_tarif
 BEGIN
 	---------------------------------------------------------------------------------------------------------
     -- extraire les tarifs pour les étiquettes électroniques solum
-    --Position="1" 	    Length="1"   CREATION MODIFICATION SUPPRESSION 
-    --Position="4" 	    Length="13"  CODE EAN 
+    --Position="1" 	Length="1"   CREATION MODIFICATION SUPPRESSION 
+    --Position="4" 	Length="13"  CODE EAN 
     --Position="17" 	Length="20"  LIBELLE CAISSE 
     --Position="37" 	Length="3"   CODE FAMILLE 
     --Position="40" 	Length="8"   PRIX DE VENTE
