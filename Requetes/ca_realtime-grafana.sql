@@ -28,7 +28,7 @@ SET i = 1;
 if dateLastYear = 0 THEN 
     set dateTicket = DATEFORMAT(current date,'YYYY-MM-dd ');
 elseif dateLastYear = 1 then
-    set dateTicket = DATEFORMAT(DATEADD(year, -1, (select DATEFORMAT(DATEADD(day,( DATEPART( Weekday , "DATEFORMAT"(current date,'YYYY-MM-dd ')) - DATEPART( Weekday , DATEADD(year, -1, "DATEFORMAT"(current date,'YYYY-MM-dd ')))), current date), 'YYYY-MM-dd'))), 'YYYY-MM-dd ')
+    set dateTicket = DATEFORMAT(DATEADD(year, -1, (select DATEADD(day,( DATEPART( Weekday , current date) - DATEPART( Weekday , DATEADD(year, -1, current date))), current date))), 'YYYY-MM-dd ')
 end if;
 
 set timeDebut = '' + convert(varchar(2),i) + ':00:00';
@@ -82,7 +82,7 @@ END LOOP;
 select 
     case dateLastYear       
         when 0 then DATEFORMAT(chrono_ticket,'YYYY-MM-dd HH:mm:SS')
-        when 1 then DATEFORMAT(DATEADD(year, +1, (select DATEFORMAT(DATEADD(day,( DATEPART( Weekday , "DATEFORMAT"(chrono_ticket,'YYYY-MM-dd HH:mm:SS')) - DATEPART( Weekday , DATEADD(year, +1, "DATEFORMAT"(chrono_ticket,'YYYY-MM-dd HH:mm:SS')))), chrono_ticket), 'YYYY-MM-dd HH:mm:SS'))), 'YYYY-MM-dd HH:mm:SS')
+        when 1 then dateformat(dateadd(year, +1, dateadd(day, DATEPART( Weekday , DATEADD(year, -1, chrono_ticket)) - DATEPART( Weekday ,( chrono_ticket)),chrono_ticket)),'YYYY-MM-dd HH:mm:SS')
     else ''
     end as tic_date,
     count_ticket as Nbr_Ticket,
@@ -108,8 +108,12 @@ CREATE PROCEDURE "omc"."omc_http_get_statistiques"()
 BEGIN
 
     declare ls_type_stat varchar(50);
-
+    declare ls_time_to varchar(500);
+    declare ls_time_from varchar(500);
+    
     set ls_type_stat = HTTP_VARIABLE('statType') ;
+    set ls_time_from = DATEFORMAT(dateadd( hour, +2 , HTTP_VARIABLE('time_from')),'YYYY-mm-dd HH:MM:SS');    
+    set ls_time_to = DATEFORMAT(dateadd( hour, +2 , HTTP_VARIABLE('time_to')),'YYYY-mm-dd HH:MM:SS');    
 
     -------------------------------------------------------------------------------
     -- Permet l'affichage du nom, du ca et de la quantité vendu pour la journée
@@ -283,6 +287,20 @@ BEGIN
     elseif ls_type_stat = 'PeriodeTicketN1' then
         call"cm_enum_periode_ticket"("dateLastYear" = 1)
 
+    -------------------------------------------------------------------------------------
+    -- Permet la récupération des informations météo de l'annnée en cours
+    -- Avec la procèdure omc_http_get_weather on vérifié qu'une ligne de météo est présente.
+    -------------------------------------------------------------------------------------
+    elseif ls_type_stat = 'weatherJ' then
+        call omc_http_get_weather();
+        select wt_json from weather where dateformat(wt_chrono,'YYYY-MM-dd') = DATEFORMAT(current timestamp,'YYYY-MM-dd')
+
+    -------------------------------------------------------------------------------------
+    -- Permet la récupération des informations météo de l'annnée dernière
+    -------------------------------------------------------------------------------------
+    elseif ls_type_stat = 'weatherJN1' then
+        select wt_json from weather where dateformat(wt_chrono,'YYYY-MM-dd') = dateadd(year, -1,DATEFORMAT(current timestamp,'YYYY-MM-dd'))
+
     ----------------------------------------------------------------
     -- Permet la récupération des informations dans le jet
     ----------------------------------------------------------------
@@ -435,8 +453,8 @@ BEGIN
                 From 
                     ticket                  
                 Where 
-                	"ticket"."tic_chrono" >=DATEFORMAT(DATEADD(year, -1, (select DATEFORMAT(DATEADD(day, ( DATEPART( Weekday , "DATEFORMAT"(current date,'YYYY-MM-dd ')) - DATEPART( Weekday , DATEADD(year, -1, "DATEFORMAT"(current date,'YYYY-MM-dd ')))), current date), 'YYYY-MM-dd'))), 'YYYY-MM-dd 00:00:00' ) and
-					"ticket"."tic_chrono" <= DATEFORMAT(DATEADD(year, -1, (select DATEFORMAT(DATEADD(day,( DATEPART( Weekday , "DATEFORMAT"(current date,'YYYY-MM-dd ')) - DATEPART( Weekday , DATEADD(year, -1, "DATEFORMAT"(current date,'YYYY-MM-dd ')))), current date), 'YYYY-MM-dd'))), 'YYYY-MM-dd ' +cast(current time as varchar(8))) and
+                	"ticket"."tic_chrono" >= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00')) and
+					"ticket"."tic_chrono" <= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and
                     ticket.tic_type = 1
             ) as Nbr_Ticket
         From 
@@ -444,8 +462,8 @@ BEGIN
             detail_ticket
         Where ticket.tic_id = detail_ticket.tic_id and
             ticket.tic_publisher = detail_ticket.tic_publisher AND
-			"ticket"."tic_chrono" >=DATEFORMAT(DATEADD(year, -1, (select DATEFORMAT(DATEADD(day, ( DATEPART( Weekday , "DATEFORMAT"(current date,'YYYY-MM-dd ')) - DATEPART( Weekday , DATEADD(year, -1, "DATEFORMAT"(current date,'YYYY-MM-dd ')))), current date), 'YYYY-MM-dd'))), 'YYYY-MM-dd 00:00:00' ) and
-			"ticket"."tic_chrono" <= DATEFORMAT(DATEADD(year, -1, (select DATEFORMAT(DATEADD(day,( DATEPART( Weekday , "DATEFORMAT"(current date,'YYYY-MM-dd ')) - DATEPART( Weekday , DATEADD(year, -1, "DATEFORMAT"(current date,'YYYY-MM-dd ')))), current date), 'YYYY-MM-dd'))), 'YYYY-MM-dd ' +cast(current time as varchar(8))) and
+        	"ticket"."tic_chrono" >= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00')) and
+            "ticket"."tic_chrono" <= DATEADD(year, -1, "DATEFORMAT"(current timestamp,'YYYY-MM-dd ' + cast(current time as varchar(8)))) and
             ticket.tic_type = 1 and
             detail_ticket.dtic_type_detail = 1
 	
@@ -502,7 +520,8 @@ BEGIN
             top 10 article.art_designation as Designation_Article,
             sum(detail_ticket.dtic_ca) as CA_Article_TTC,
             sum(detail_ticket.dtic_ca_ht) as CA_Article_HT,
-            sum (detail_ticket.dtic_quantite) as Quantite
+            sum (detail_ticket.dtic_quantite) as Quantite,
+            ticket.tic_chrono
         From
             ticket,
             detail_ticket,
@@ -510,14 +529,16 @@ BEGIN
         Where
             ticket.tic_id = detail_ticket.tic_id and
             ticket.tic_publisher = detail_ticket.tic_publisher and
-            "ticket"."tic_chrono" >= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00') and
-            "ticket"."tic_chrono" <= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 23:59:59') and
+            --"ticket"."tic_chrono" >= "DATEFORMAT"(current timestamp,'YYYY-MM-dd 00:00:00') and
+            "ticket"."tic_chrono" >= ls_time_from and           
+            "ticket"."tic_chrono" <= "DATEFORMAT"(current timestamp,ls_time_to) and
             detail_ticket.art_id = article.art_id and    
             detail_ticket.art_publisher = article.art_publisher and    
             ticket.tic_type = 1  and
             detail_ticket.dtic_type_detail = 1                                
         Group By
-            Designation_Article
+            Designation_Article,
+            ticket.tic_chrono
         Order By
             CA_Article_TTC desc
 
@@ -531,10 +552,10 @@ BEGIN
     end if;
 END;
 
-
 if exists( select 1 from sys.syswebservice where service_name='getStatistics' ) then 
 	drop service "getStatistics"
 end if;
 CREATE SERVICE "getStatistics" TYPE 'JSON' AUTHORIZATION OFF USER "omc" METHODS 'HEAD,GET' AS call "omc_http_get_statistiques"();
-commit
+CREATE SERVICE "getWeather" TYPE 'RAW' AUTHORIZATION OFF USER "omc" METHODS 'HEAD,GET' AS call "omc_http_get_statistiques"();
 
+commit
