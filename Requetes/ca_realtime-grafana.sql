@@ -601,7 +601,7 @@ BEGIN
 
     select 
         DATEFORMAT(ticket.tic_chrono, 'MM') as chrono,
-        coalesce(sum(detail_ticket.dtic_ca),'') as CA
+        sum(detail_ticket.dtic_ca) as CA
     From 
         ticket,
         detail_ticket
@@ -624,7 +624,7 @@ BEGIN
 
     select 
         DATEFORMAT(ticket.tic_chrono, 'YYYY') as chrono,
-        coalesce(sum(detail_ticket.dtic_ca),0) as CA
+        sum(detail_ticket.dtic_ca) as CA
     From 
         ticket,
         detail_ticket
