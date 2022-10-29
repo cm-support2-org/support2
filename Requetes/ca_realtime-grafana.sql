@@ -624,7 +624,7 @@ BEGIN
 
     select 
         DATEFORMAT(ticket.tic_chrono, 'YYYY') as chrono,
-        coalesce(sum(detail_ticket.dtic_ca),'') as CA
+        coalesce(sum(detail_ticket.dtic_ca),0) as CA
     From 
         ticket,
         detail_ticket
@@ -633,7 +633,7 @@ BEGIN
         and ticket.tic_publisher = detail_ticket.tic_publisher
         and ticket.tic_type = 1
         and detail_ticket.dtic_type_detail = 1 and
-        ticket.tic_chrono >= DATEFORMAT(current timestamp,'2000-01-01 00:00:00') and
+        ticket.tic_chrono >= '2000-01-01 00:00:00' and
         ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-12-31 23:59:59')
     Group by 
         chrono
