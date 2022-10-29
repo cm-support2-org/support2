@@ -325,7 +325,7 @@ BEGIN
             evenement_context,
             dateformat(evenement_chrono, 'HH:mm:SS') as chrono,
             evenement_utilisateur,
-            evenement_data_plaintext,
+            evenement_data_plaintext
         From 
             omc_p_cert_read_journal(adt_chrono_debut = dateDebut,adt_chrono_fin = dateFin) 
         Where 
