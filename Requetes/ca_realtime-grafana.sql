@@ -324,7 +324,8 @@ BEGIN
         Select          
             evenement_context,
             dateformat(evenement_chrono, 'HH:mm:SS') as chrono,
-            evenement_data_plaintext
+            evenement_utilisateur,
+            evenement_data_plaintext,
         From 
             omc_p_cert_read_journal(adt_chrono_debut = dateDebut,adt_chrono_fin = dateFin) 
         Where 
@@ -594,7 +595,7 @@ BEGIN
         Order By
             CA_Article_TTC desc
     ----------------------------------------------------------------
-    -- Affichage du top10 des articles vendue
+    -- Affichage du CA mois par mois sur l'année en cours
     ---------------------------------------------------------------- 
     elseif ls_type_stat = 'CaMonth' then   
 
@@ -610,6 +611,29 @@ BEGIN
         and ticket.tic_type = 1
         and detail_ticket.dtic_type_detail = 1 and
         ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-01-01 00:00:00') and
+        ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-12-31 23:59:59')
+    Group by 
+        chrono
+    Order by
+        chrono asc
+	
+    ----------------------------------------------------------------
+    -- Affichage du CA années par années 
+    ---------------------------------------------------------------- 
+    elseif ls_type_stat = 'CaYears' then   
+
+    select 
+        DATEFORMAT(ticket.tic_chrono, 'YYYY') as chrono,
+        coalesce(sum(detail_ticket.dtic_ca),'') as CA
+    From 
+        ticket,
+        detail_ticket
+    Where 
+        ticket.tic_id = detail_ticket.tic_id
+        and ticket.tic_publisher = detail_ticket.tic_publisher
+        and ticket.tic_type = 1
+        and detail_ticket.dtic_type_detail = 1 and
+        ticket.tic_chrono >= DATEFORMAT(current timestamp,'2000-01-01 00:00:00') and
         ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-12-31 23:59:59')
     Group by 
         chrono
