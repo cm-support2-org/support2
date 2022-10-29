@@ -14,11 +14,10 @@ BEGIN
     declare i INTEGER ;
     declare DateTimeResult varchar(19);
 
-	DECLARE date1 LONG VARCHAR;
-    DECLARE date2 LONG VARCHAR;
-    DECLARE dateDiff LONG VARCHAR;
+    declare date1 LONG VARCHAR;
+    declare date2 LONG VARCHAR;
+    declare dateDiff LONG VARCHAR;
 
-   
     declare local temporary table t_result(
     chrono_ticket varchar(30) null,
     count_ticket integer null,
@@ -32,7 +31,6 @@ BEGIN
     set date1 = DATEPART( weekday , current date);
     set date2 = DATEPART( weekday , dateadd(year, -1,current date));
     set dateDiff = (date1 - date2) ;
-
 
 --Est ce que doit prendre la date de l'année dernière ?
 if dateLastYear = 0 THEN 
@@ -111,7 +109,6 @@ WHERE
 Group By chrono_ticket ,Nbr_Ticket;
 END;
 
-
 if exists(select 1 from sys.sysprocedure where proc_name = 'omc_http_get_statistiques') then
    drop procedure omc_http_get_statistiques
 end if;
@@ -129,9 +126,9 @@ BEGIN
     declare CA_N decimal;
     declare CA_N1 decimal;
 
-   	DECLARE date1 LONG VARCHAR;
-    DECLARE date2 LONG VARCHAR;
-    DECLARE dateDiff LONG VARCHAR;
+    declare date1 LONG VARCHAR;
+    declare date2 LONG VARCHAR;
+    declare dateDiff LONG VARCHAR;
     declare dateDebut long varchar;
     declare dateFin long varchar;
 
@@ -146,7 +143,7 @@ BEGIN
     set ls_time_to = DATEFORMAT(dateadd( hour, +2 , HTTP_VARIABLE('time_to')),'YYYY-mm-dd HH:MM:SS');    
 
     ----------------------------------------------------------------------------------------------------
-    -- Permet l'affichage du nom, du ca et de la quantité vendu pour la journée en cours par familles
+    -- Permet l'affichage du nom, du ca et de la quantitée vendu pour la journée en cours par familles
     ----------------------------------------------------------------------------------------------------
     if ls_type_stat = 'CaFamillesJ' then
 
@@ -166,7 +163,7 @@ BEGIN
             ticket.tic_publisher = detail_ticket.tic_publisher and 
             ticket.tic_chrono >= dateDebut and
             ticket.tic_chrono <= dateFin and
-             detail_ticket.art_id = article.art_id and 
+            detail_ticket.art_id = article.art_id and 
             detail_ticket.art_publisher = article.art_publisher and
             article.fam_id = famille.fam_id and
             article.fam_publisher = famille.fam_publisher and
@@ -755,7 +752,6 @@ if exists( select 1 from sys.syswebservice where service_name='getWeather' ) the
 end if;
 CREATE SERVICE "getWeather" TYPE 'RAW' AUTHORIZATION OFF USER "omc" METHODS 'HEAD,GET' AS call "omc_http_get_weather"();
 
-
 -------------------------------------------------------------------------------------
 -- Création de la table météo. On stock la météo du jour.
 -------------------------------------------------------------------------------------
@@ -767,6 +763,6 @@ CREATE TABLE "omc"."weather" (
 	"wt_json" "t_texte" NOT NULL,
 	PRIMARY KEY ( "wt_id" ASC, "wt_publisher" ASC )
 ) IN "system";
-
 end if;
+
 commit
