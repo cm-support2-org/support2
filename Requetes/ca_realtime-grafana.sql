@@ -127,6 +127,13 @@ BEGIN
     --------------------------------------------------------------------------
 BEGIN
 
+    ALTER PROCEDURE "omc"."omc_http_get_statistiques"()
+
+    --------------------------------------------------------------------------
+    -- Cette procèdure regroupe plusieurs type de stats
+    --------------------------------------------------------------------------
+BEGIN
+
     declare ls_type_stat varchar(50);
     declare ls_time_to varchar(500);
     declare ls_time_from varchar(500);
@@ -139,7 +146,7 @@ BEGIN
     declare dateDebut long varchar;
     declare dateFin long varchar;
     
-    //Variable pour les stats ca_years
+    //Variable pour les stats ca_month
     declare ca varchar(2000);
     declare first_ticket_years integer;
     declare first_ticket_month integer;
@@ -165,7 +172,7 @@ BEGIN
     ----------------------------------------------------------------------------------------------------
     if ls_type_stat = 'CaFamillesJ' then
 
-        Select 
+        Select top 15
             famille.fam_libelle as Designation,
             sum(detail_ticket.dtic_ca) as CA,
             sum(detail_ticket.dtic_quantite) as Quantite
@@ -636,8 +643,8 @@ BEGIN
     ---------------------------------------------------------------- 
     elseif ls_type_stat = 'topSellArticles' then   
 
-        Select
-            top 10 article.art_designation as Designation_Article,
+        Select top 10
+            article.art_designation as Designation_Article,
             sum(detail_ticket.dtic_ca) as CA_Article_TTC,          
             sum (detail_ticket.dtic_quantite) as Quantite
         From
@@ -656,6 +663,7 @@ BEGIN
             Designation_Article
         Order By
             CA_Article_TTC desc
+
     ----------------------------------------------------------------
     -- Affichage du CA mois par mois sur l'année en cours
     ---------------------------------------------------------------- 
@@ -677,15 +685,20 @@ BEGIN
     
     --Boucle sur chaque années
     WHILE i <= last_ticket_years LOOP
+        --Boucle sur chaque mois
         while y <= last_ticket_month loop
     
+                --Si le mois est < a 10 on ajoute un zéro
                 if y < 10 then
                    set month = '0' + convert(varchar(2),y);
                 else
                    set month = convert(varchar(2),y);  
                 end if;
-
+                
+                --Récupération du derniers tiket (jours) du mois
                 set last_ticket_day = (select coalesce("dateformat"("max"("ticket"."tic_chrono"),'dd'),'01') from ticket where tic_chrono between convert(varchar(4),i) + '-' + month and dateformat(cast(dateadd(dd, -1, dateadd(mm, 1, ymd(convert(varchar(4),i), month, 1))) as date),'yyyy-mm-dd 23:59:59'));
+                
+                --Requête d'extraction
                 set ca = (select 
                                 sum(detail_ticket.dtic_ca) as CA
                             From 
@@ -720,7 +733,7 @@ BEGIN
         set y = 1;
     END LOOP;
  
-    --Resultat
+    --Requête
         select 
             memca_month as chrono, 
             memca_ca as ca
@@ -728,7 +741,9 @@ BEGIN
             memo_ca 
         where 
             memca_years = dateformat(current date,'yyyy')
-
+        Order By
+            memca_month desc
+        
     ----------------------------------------------------------------
     -- Affichage du CA années par années 
     ---------------------------------------------------------------- 
@@ -744,7 +759,7 @@ BEGIN
     Group by 
         memca_years
     Order By
-    memca_years desc    
+        memca_years desc    
     
     ----------------------------------------------------------------
     -- Affichage des démarques
