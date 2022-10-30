@@ -120,6 +120,13 @@ CREATE PROCEDURE "omc"."omc_http_get_statistiques"()
     --------------------------------------------------------------------------
 BEGIN
 
+   ALTER PROCEDURE "omc"."omc_http_get_statistiques"()
+
+    --------------------------------------------------------------------------
+    -- Cette procèdure regroupe plusieurs type de stats
+    --------------------------------------------------------------------------
+BEGIN
+
     declare ls_type_stat varchar(50);
     declare ls_time_to varchar(500);
     declare ls_time_from varchar(500);
@@ -131,6 +138,17 @@ BEGIN
     declare dateDiff LONG VARCHAR;
     declare dateDebut long varchar;
     declare dateFin long varchar;
+    
+    //Variable pour les stats ca_years
+    declare ca varchar(2000);
+    declare first_ticket_years integer;
+    declare first_ticket_month integer;
+    declare last_ticket_years integer;
+    declare last_ticket_month integer;
+    declare i INTEGER ;
+    declare y integer;
+    declare month varchar(2);
+    declare last_ticket_day varchar(2);
 
     set date1 = DATEPART( weekday , current date);
     set date2 = DATEPART( weekday , dateadd(year, -1,current date));
@@ -225,6 +243,30 @@ BEGIN
         Order by 
             dticrem_taux_remise desc,
             Designation desc
+    
+    -------------------------------------------------------------------------------
+    -- Permet l'affichage du total des remises effectuée
+    -------------------------------------------------------------------------------   
+    elseif ls_type_stat = 'DetailRemiseTotal' then
+
+        Select 
+            coalesce(sum(dticrem_montant_remise),0) as Montant_Remise                   
+        From 
+            ticket,
+            detail_ticket left outer join detail_ticket_remise on
+                detail_ticket.dtic_id = detail_ticket_remise.dtic_id and
+                detail_ticket.dtic_publisher = detail_ticket_remise.dtic_publisher,           
+            article
+        Where 
+            ticket.tic_id = detail_ticket.tic_id and 
+            ticket.tic_publisher = detail_ticket.tic_publisher and 
+            ticket.tic_chrono >= dateDebut and
+            ticket.tic_chrono <= dateFin and
+            detail_ticket.art_id = article.art_id and 
+            detail_ticket.art_publisher = article.art_publisher and
+            ticket.tic_type = 1 and
+            detail_ticket.dtic_type_detail = 1 and            
+            detail_ticket_remise.dticrem_taux_remise <> 0
 
     -------------------------------------------------------------------------------
     -- Permet l'affiche des commandes saisie du jours
@@ -257,6 +299,26 @@ BEGIN
             Commentaire
         Order By 
             ticket.tic_chrono desc   
+
+    -------------------------------------------------------------------------------
+    -- Permet l'affiche du total des commandes prise du jours
+    -------------------------------------------------------------------------------
+    elseif ls_type_stat = 'CommandesJTotal' then
+
+        Select
+            coalesce(sum(detail_ticket.dtic_ca),0) as CA
+        From 
+            ticket ,
+            detail_ticket,
+            article
+        Where
+            ticket.tic_type = 3 and
+            ticket.tic_id = detail_ticket.tic_id and
+            ticket.tic_publisher = detail_ticket.tic_publisher AND
+            ticket.tic_chrono >= dateDebut and
+            ticket.tic_chrono <= dateFin and
+            detail_ticket.art_id = article.art_id and
+            detail_ticket.art_publisher = article.art_publisher   
 
     -----------------------------------------------------------------------------------
     -- Permet l'affichage des encaissements de la journée (MRG)
@@ -598,52 +660,97 @@ BEGIN
     -- Affichage du CA mois par mois sur l'année en cours
     ---------------------------------------------------------------- 
     elseif ls_type_stat = 'CaMonth' then   
+ 
+    set first_ticket_years = (select dateformat(min(ticket.tic_chrono),'YYYY')from ticket);
+    set last_ticket_years = (select dateformat(max(ticket.tic_chrono),'YYYY')from ticket);
+    set first_ticket_month = (select dateformat(min(ticket.tic_chrono),'mm')from ticket);
+    set last_ticket_month = (select dateformat(max(ticket.tic_chrono),'mm')from ticket);
 
-    select 
-        DATEFORMAT(ticket.tic_chrono, 'MM') as chrono,
-        sum(detail_ticket.dtic_ca) as CA
-    From 
-        ticket,
-        detail_ticket
-    Where 
-        ticket.tic_id = detail_ticket.tic_id
-        and ticket.tic_publisher = detail_ticket.tic_publisher
-        and ticket.tic_type = 1
-        and detail_ticket.dtic_type_detail = 1 and
-        ticket.tic_chrono >= DATEFORMAT(current timestamp,'YYYY-01-01 00:00:00') and
-        ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-12-31 23:59:59')
-    Group by 
-        chrono
-    Order by
-        chrono asc
-	
+    --Est qu'il existe des données dans la base mémo
+    if exists ( select 1 from memo_ca) then
+        set i = (select max(memca_years) from memo_ca);
+        set y = (select max(memca_month) from memo_ca);
+    else
+        set i = first_ticket_years;    
+        set y = first_ticket_month;
+    end if;
+    
+    --Boucle sur chaque années
+    WHILE i <= last_ticket_years LOOP
+        while y <= last_ticket_month loop
+    
+                if y < 10 then
+                   set month = '0' + convert(varchar(2),y);
+                else
+                   set month = convert(varchar(2),y);  
+                end if;
+
+                set last_ticket_day = (select coalesce("dateformat"("max"("ticket"."tic_chrono"),'dd'),'01') from ticket where tic_chrono between convert(varchar(4),i) + '-' + month and dateformat(cast(dateadd(dd, -1, dateadd(mm, 1, ymd(convert(varchar(4),i), month, 1))) as date),'yyyy-mm-dd 23:59:59'));
+                set ca = (select 
+                                sum(detail_ticket.dtic_ca) as CA
+                            From 
+                                ticket,
+                                detail_ticket
+                            Where 
+                                ticket.tic_id = detail_ticket.tic_id
+                                and ticket.tic_publisher = detail_ticket.tic_publisher
+                                and ticket.tic_type = 1
+                                and detail_ticket.dtic_type_detail = 1 and
+                                ticket.tic_chrono >= convert(varchar(4),i) + '-' + month + '-01 00:00:00' and
+                                ticket.tic_chrono <= convert(varchar(4),i) + '-' + month + '-' + last_ticket_day + ' 23:59:59'
+                            HAVING sum(detail_ticket.dtic_ca) > 0
+                        );
+            
+                --Si aucune données dans la base memo alors on insert
+                if not exists ( select 1 from memo_ca where memca_years = i and memo_ca.memca_month = y) then
+                    INSERT INTO memo_ca
+                        (memca_id, memca_publisher, memca_years, memca_ca, memca_month)
+                        VALUES(null ,'a',i,ca, month);
+                        commit;
+                --Sinon on update le ca uniquement
+                elseif exists ( select 1 from memo_ca where memca_years = i and memo_ca.memca_month = month) then
+                    update memo_ca set memo_ca.memca_ca = ca where memca_years = i and memo_ca.memca_month = month;
+                    commit;
+                end if;
+    
+            set y = y + 1;    
+        END LOOP;
+        
+        set i = i + 1;
+        set y = 1;
+    END LOOP;
+ 
+    --Resultat
+        select 
+            memca_month as chrono, 
+            memca_ca as ca
+        from 
+            memo_ca 
+        where 
+            memca_years = dateformat(current date,'yyyy')
+
     ----------------------------------------------------------------
     -- Affichage du CA années par années 
     ---------------------------------------------------------------- 
     elseif ls_type_stat = 'CaYears' then   
 
     select 
-        DATEFORMAT(ticket.tic_chrono, 'YYYY') as chrono,
-        sum(detail_ticket.dtic_ca) as CA
-    From 
-        ticket,
-        detail_ticket
-    Where 
-        ticket.tic_id = detail_ticket.tic_id
-        and ticket.tic_publisher = detail_ticket.tic_publisher
-        and ticket.tic_type = 1
-        and detail_ticket.dtic_type_detail = 1 and
-        ticket.tic_chrono >= '2000-01-01 00:00:00' and
-        ticket.tic_chrono <= DATEFORMAT(current timestamp,'YYYY-12-31 23:59:59')
+        memca_years as chrono,
+        sum(memca_ca) as ca
+    from 
+        memo_ca
+    Where
+        memca_ca is not null
     Group by 
-        chrono
-    Order by
-        chrono asc
-
+        memca_years
+    Order By
+    memca_years desc    
+    
     ----------------------------------------------------------------
     -- Affichage des démarques
     ---------------------------------------------------------------- 
-    elseif ls_type_stat = 'Demarques' then   
+    elseif ls_type_stat = 'Demarques' then 
+  
     select 
         dateformat(ticket.tic_chrono, 'HH:mm:SS') as chrono,
         article.art_designation as Designation,
@@ -668,6 +775,26 @@ BEGIN
     Order By      
         CA desc,
         Quantite desc
+
+    ----------------------------------------------------------------
+    -- Affichage du total CA des démarques
+    ---------------------------------------------------------------- 
+    elseif ls_type_stat = 'DemarquesTotal' then 
+  
+    select 
+        coalesce(sum(detail_ticket.dtic_ca),0) as CA
+    from 
+        ticket, 
+        detail_ticket,
+        article
+    where 
+        ticket.tic_id = detail_ticket.tic_id and 
+        ticket.tic_publisher = detail_ticket.tic_publisher and 
+        ticket.tic_chrono >= dateDebut and 
+        ticket.tic_chrono <= datefin and
+        article.art_id = detail_ticket.art_id and
+        article.art_publisher = detail_ticket.art_publisher and
+        dtic_type_detail = 14
 
     ----------------------------------------------------------------
     -- Permet de savoir si la sauvegarde date de moins de 7 jour.
