@@ -917,3 +917,20 @@ CREATE TABLE "omc"."weather" (
 end if;
 
 commit
+
+-------------------------------------------------------------------------------------
+-- Création de la table memo_ca pour stocker le ca pour éviter les calculs inutiles.
+--Optimisation importante de l'extraction.
+-------------------------------------------------------------------------------------
+if not exists( select * from sys.SYSTABLE where table_name='memo_ca') then 
+CREATE TABLE "omc"."memo_ca" (
+	"memca_id" "t_id" NOT NULL DEFAULT AUTOINCREMENT,
+	"memca_publisher" "t_id_publisher" NOT NULL,
+	"memca_years" VARCHAR(4) NOT NULL,
+	"memca_ca" "t_montant" NULL,
+	"memca_month" VARCHAR(2) NULL,
+	PRIMARY KEY ( "memca_id" ASC, "memca_publisher" ASC )
+) IN "system";
+end if;
+commit
+
