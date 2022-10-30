@@ -1,4 +1,3 @@
-
 if exists(select 1 from sys.sysprocedure where proc_name = 'cm_enum_periode_ticket') then
    drop procedure cm_enum_periode_ticket
 end if;
@@ -118,20 +117,7 @@ CREATE PROCEDURE "omc"."omc_http_get_statistiques"()
     --------------------------------------------------------------------------
     -- Cette procèdure regroupe plusieurs type de stats
     --------------------------------------------------------------------------
-BEGIN
 
-   ALTER PROCEDURE "omc"."omc_http_get_statistiques"()
-
-    --------------------------------------------------------------------------
-    -- Cette procèdure regroupe plusieurs type de stats
-    --------------------------------------------------------------------------
-BEGIN
-
-    ALTER PROCEDURE "omc"."omc_http_get_statistiques"()
-
-    --------------------------------------------------------------------------
-    -- Cette procèdure regroupe plusieurs type de stats
-    --------------------------------------------------------------------------
 BEGIN
 
     declare ls_type_stat varchar(50);
@@ -908,44 +894,42 @@ begin
    delete from weather where weather.wt_chrono < dateadd(year, -1,DATEFORMAT(current timestamp,'YYYY-MM-dd'))
 end;
 
-if exists( select 1 from sys.syswebservice where service_name='getStatistics' ) then 
-	drop service "getStatistics"
-end if;
-CREATE SERVICE "getStatistics" TYPE 'JSON' AUTHORIZATION OFF USER "omc" METHODS 'HEAD,GET' AS call "omc_http_get_statistiques"();
+    if exists( select 1 from sys.syswebservice where service_name='getStatistics' ) then 
+    	drop service "getStatistics"
+    end if;
+    CREATE SERVICE "getStatistics" TYPE 'JSON' AUTHORIZATION OFF USER "omc" METHODS 'HEAD,GET' AS call "omc_http_get_statistiques"();
+    
+    if exists( select 1 from sys.syswebservice where service_name='getWeather' ) then 
+    	drop service "getWeather"
+    end if;
+    CREATE SERVICE "getWeather" TYPE 'RAW' AUTHORIZATION OFF USER "omc" METHODS 'HEAD,GET' AS call "omc_http_get_weather"();
 
-if exists( select 1 from sys.syswebservice where service_name='getWeather' ) then 
-	drop service "getWeather"
-end if;
-CREATE SERVICE "getWeather" TYPE 'RAW' AUTHORIZATION OFF USER "omc" METHODS 'HEAD,GET' AS call "omc_http_get_weather"();
+    -------------------------------------------------------------------------------------
+    -- Création de la table météo. On stock la météo du jour.
+    -------------------------------------------------------------------------------------
+    if not exists( select * from sys.SYSTABLE where table_name='weather') then 
+        CREATE TABLE "omc"."weather" (
+        	"wt_id" "t_id" NOT NULL DEFAULT AUTOINCREMENT,
+        	"wt_publisher" "t_publisher" NOT NULL,
+        	"wt_chrono" "t_date" NOT NULL UNIQUE,
+        	"wt_json" "t_texte" NOT NULL,
+        	PRIMARY KEY ( "wt_id" ASC, "wt_publisher" ASC )
+        ) IN "system";
+    end if;    
+    commit;
 
--------------------------------------------------------------------------------------
--- Création de la table météo. On stock la météo du jour.
--------------------------------------------------------------------------------------
-if not exists( select * from sys.SYSTABLE where table_name='weather') then 
-CREATE TABLE "omc"."weather" (
-	"wt_id" "t_id" NOT NULL DEFAULT AUTOINCREMENT,
-	"wt_publisher" "t_publisher" NOT NULL,
-	"wt_chrono" "t_date" NOT NULL UNIQUE,
-	"wt_json" "t_texte" NOT NULL,
-	PRIMARY KEY ( "wt_id" ASC, "wt_publisher" ASC )
-) IN "system";
-end if;
-
-commit
-
--------------------------------------------------------------------------------------
--- Création de la table memo_ca pour stocker le ca pour éviter les calculs inutiles.
---Optimisation importante de l'extraction.
--------------------------------------------------------------------------------------
-if not exists( select * from sys.SYSTABLE where table_name='memo_ca') then 
-CREATE TABLE "omc"."memo_ca" (
-	"memca_id" "t_id" NOT NULL DEFAULT AUTOINCREMENT,
-	"memca_publisher" "t_id_publisher" NOT NULL,
-	"memca_years" VARCHAR(4) NOT NULL,
-	"memca_ca" "t_montant" NULL,
-	"memca_month" VARCHAR(2) NULL,
-	PRIMARY KEY ( "memca_id" ASC, "memca_publisher" ASC )
-) IN "system";
-end if;
-commit
-
+    -------------------------------------------------------------------------------------
+    -- Création de la table memo_ca pour stocker le ca pour éviter les calculs inutiles.
+    --Optimisation importante de l'extraction.
+    -------------------------------------------------------------------------------------
+    if not exists( select * from sys.SYSTABLE where table_name='memo_ca') then 
+        CREATE TABLE "omc"."memo_ca" (
+        	"memca_id" "t_id" NOT NULL DEFAULT AUTOINCREMENT,
+        	"memca_publisher" "t_id_publisher" NOT NULL,
+        	"memca_years" VARCHAR(4) NOT NULL,
+        	"memca_ca" "t_montant" NULL,
+        	"memca_month" VARCHAR(2) NULL,
+        	PRIMARY KEY ( "memca_id" ASC, "memca_publisher" ASC )
+        ) IN "system";
+     end if;
+     commit;
