@@ -114,10 +114,11 @@ end if;
 
 CREATE PROCEDURE "omc"."omc_http_get_statistiques"()
 
+ALTER PROCEDURE "omc"."omc_http_get_statistiques"()
+
     --------------------------------------------------------------------------
     -- Cette procèdure regroupe plusieurs type de stats
     --------------------------------------------------------------------------
-
 BEGIN
 
     declare ls_type_stat varchar(50);
@@ -796,6 +797,39 @@ BEGIN
         article.art_id = detail_ticket.art_id and
         article.art_publisher = detail_ticket.art_publisher and
         dtic_type_detail = 14
+
+    ----------------------------------------------------------------
+    -- Affichage du total soldes clients
+    ---------------------------------------------------------------- 
+    elseif ls_type_stat = 'SoldesCompte' then 
+    
+    select   
+ (
+    select 
+        coalesce(sum(compte_societe.comsoc_solde),0) as solde_negatif
+    from 
+        usager,
+        compte,
+        compte_societe
+    Where
+        usager.usa_id = compte.usa_id and
+        usager.usa_publisher = compte.usa_publisher and
+        compte.com_id = compte_societe.com_id and
+        compte_societe.comsoc_solde < 0
+    ),
+    (
+        select 
+            coalesce(sum(compte_societe.comsoc_solde),0) as solde_positif
+        from 
+            usager,
+            compte,
+            compte_societe
+        Where
+            usager.usa_id = compte.usa_id and
+            usager.usa_publisher = compte.usa_publisher and
+            compte.com_id = compte_societe.com_id and
+            compte_societe.comsoc_solde > 0
+    )
 
     ----------------------------------------------------------------
     -- Permet de savoir si la sauvegarde date de moins de 7 jour.
