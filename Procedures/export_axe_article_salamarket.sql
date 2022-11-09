@@ -6,13 +6,15 @@ in as_code_tarif t_code_classe_tarif
 BEGIN
 	---------------------------------------------------------------------------------------------------------
     -- extraire les tarifs pour les étiquettes électroniques solum
-    --Position="1" 	Length="1"   CREATION MODIFICATION SUPPRESSION 
-    --Position="4" 	Length="13"  CODE EAN 
+    --Position="1" 	    Length="1"   CREATION MODIFICATION SUPPRESSION 
+    --Position="4" 	    Length="13"  CODE EAN 
     --Position="17" 	Length="20"  LIBELLE CAISSE 
     --Position="37" 	Length="3"   CODE FAMILLE 
     --Position="40" 	Length="8"   PRIX DE VENTE
     --Position="48"     Length="15"  RACES
-    --Position="63"     Length="15"  ELEVAGES 
+    --Position="63"     Length="15"  ELEVAGES
+    --Position="83"     Length="8"   PRIX_VENTE_PROMO
+    --Position="91"     Length="8"   PRIX_UNITAIRE_PROMO
     --Position="100" 	Length="8"   CODE INTERNE 
     --Position="113" 	Length="5"   CODE FOURNISSEUR 
     --Position="118" 	Length="8"   CONTENANCE + UNITE 
@@ -135,10 +137,12 @@ BEGIN
         left( cast(code_barre.codbr_codebarre as varchar), 13 ) + coalesce(space( 13 - length(cast (code_barre.codbr_codebarre as varchar))),space(13)) as CODE_EAN,
         left( cast(article.art_desig_courte as varchar), 20 ) + coalesce(space( 20 - length(cast (article.art_desig_courte as varchar))),space(20)) as LIBELLE_CAISSE,
         left( cast(famille.fam_code as varchar), 3 ) + coalesce(space( 3 - length(cast (famille.fam_code as varchar))),'') as CODE_FAMILLE,
-        left(omc_f_decimal_to_string(round(tarif_ct.tarct_prix_1,2),2),8) + coalesce(space( 8 - length(cast (omc_f_decimal_to_string(round(tarif_ct.tarct_prix_1,2),2) as varchar))),'') as PRIX_DE_VENTE,        
+        left(omc_f_decimal_to_string(round(tarif_ct.tarct_prix_1,2),2),8) + coalesce(space( 8 - length(cast (omc_f_decimal_to_string(round(tarif_ct.tarct_prix_1,2),2) as varchar))),'') as PRIX_DE_VENTE,               
         left( cast(from_races.Races as varchar ), 15 ) + coalesce(space( 15 - length(cast (from_races.Races as varchar))),space(15)) as RACES, 
         left( cast(from_elevages.Elevages as varchar ), 15 ) + coalesce(space( 15 - length(cast (from_elevages.Elevages as varchar))),space(15)) as ELEVAGES, 
-        space(22),
+        left(omc_f_decimal_to_string(round(tarif_ct.tarct_prix_promo,2),2),8) + coalesce(space( 8 - length(cast (omc_f_decimal_to_string(round(tarif_ct.tarct_prix_promo,2),2) as varchar))),'') as PRIX_VENTE_PROMO,        
+        left( omc_f_decimal_to_string_new(round(tarif_ct.tarct_prix_promo/ coalesce(nullif(sref_article.sra_qte_uni_ref_vente_etiq,''),1),2),2), 8 ) + coalesce(space( 8 - length(omc_f_decimal_to_string_new(round(tarif_ct.tarct_prix_promo / coalesce(nullif(sref_article.sra_qte_uni_ref_vente_etiq,''),1),2),2 ))),space(8)) as PRIX_UNITAIRE_PROMO, 
+        space(6),
         left( cast(plu_sref.plusref_plu as varchar), 8 ) + coalesce(space( 8 - length(cast (plu_sref.plusref_plu as varchar))),space(8)) as CODE_INTERNE,
         space(5),
         left( cast(fournisseur_habituel_general.fouhabgen_reference_fou as varchar), 5 ) + coalesce(space( 5 - length(cast (fournisseur_habituel_general.fouhabgen_reference_fou as varchar))),space(5)) as CODE_FOURNISSEUR,
