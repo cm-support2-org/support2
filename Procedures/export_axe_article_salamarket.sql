@@ -1,7 +1,8 @@
 ALTER PROCEDURE "omc"."export_axe_article_salamarket"( 
 in as_code_societe t_code_tiers, 
 in as_code_magasin t_code_depot,
-in as_code_tarif t_code_classe_tarif
+in as_code_tarif t_code_classe_tarif,
+in as_date_modificcation integer default null
 )
 BEGIN
 	---------------------------------------------------------------------------------------------------------
@@ -38,6 +39,7 @@ BEGIN
 	declare ls_mag_publisher t_publisher ;
     declare ll_tar_ct_id t_id ;
 	declare ls_tar_ct_publisher t_publisher ;
+    declare dateArtModification t_date;
     
     -- table temporaire tarif
     declare local temporary table t_tarif_ct(
@@ -50,6 +52,11 @@ BEGIN
     ) on commit delete rows;
 
     -- init
+    if as_date_modificcation is not null then
+        set dateArtModification = dateadd(day,-as_date_modificcation,dateformat(current timestamp, 'yyyy-mm-dd 00:00:00'));
+    else
+        set dateArtModification = '2000-01-01 00:00:00'
+    end if;
     
     -- récupérer id magasin et id classe de tarif
     select
@@ -318,7 +325,8 @@ BEGIN
         sref_article.sra_fin_validite is null and
         plu_sref.sra_id = sref_article.sra_id and
         plu_sref.sra_publisher = sref_article.sra_publisher and
-        code_barre.codbr_codebarre is not null           
+        code_barre.codbr_codebarre is not null and
+        omc.article.art_chrono_m > dateArtModification            
     Order by    
         article.art_id asc
  
