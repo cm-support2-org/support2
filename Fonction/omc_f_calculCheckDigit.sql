@@ -4,6 +4,7 @@ DETERMINISTIC
 
     //Cette fonction permet le calcul du checkdigit pour les EAN 8 ou 13.
     //Cela permet de remplacer l'étoile de GOMC par le digit.
+    //Fonction basé sur le site https://github.com/segovoni/GS1-barcode-check-digit-calculator/blob/master/TSQL/sources/GS1CDC.class.sql
 
 BEGIN
 	DECLARE ls_barcodes t_code_barre;
