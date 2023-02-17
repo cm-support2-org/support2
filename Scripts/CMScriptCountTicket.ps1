@@ -5,8 +5,10 @@ Compte le nombre de ticket present dans la base de donnes
 Change Log
 #>
 $ExitCode = 0
+
 #Verification si le fichier existe. S'il existe pas creation
-$fileToMessage = "$env:TEMP\CMCountTicket.txt"
+$fileToMessage = "$env:TEMP\CMInfoSociete.txt"
+
 if (Test-Path $fileToMessage -PathType leaf)
 {
     #Si le fichier existe  
@@ -73,13 +75,12 @@ Function ODBCConnection {
         $ExitCode = 0
         $lbvalide = $True   
             
-        }else{
-        
+        }else{       
 
-        #Ecrire message
-        Add-Content $fileToMessage $Message 
-        $ExitCode = 0
-        $lbvalide = $True                
+            #Ecrire message
+            Add-Content $fileToMessage $Message 
+            $ExitCode = 0
+            $lbvalide = $True                
 
         }                   
             
@@ -95,27 +96,4 @@ Function ODBCConnection {
     exit $ExitCode
 }
 
-
-$query = "select count(*) as countTicket from ticket"
-
-If (Get-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\ODBC\ODBC.ini\OMC_RESTAU_SECOURS"  -Name Description -ErrorAction SilentlyContinue) {
-     
-#Write-Output "found"
-ODBCConnection -dsn "OMC_RESTAU_SECOURS;Uid=dba;Pwd=sql" -query $query
-
-}Elseif (Get-ItemProperty -Path "HKLM:\SOFTWARE\ODBC\ODBC.ini\OMC_RESTAU_SECOURS"  -Name Description -ErrorAction SilentlyContinue){
-
-#Write-Output "not found"
-ODBCConnection -dsn "OMC_RESTAU_SECOURS;Uid=dba;Pwd=sql" -query $query
-
-
-}Elseif (Get-ItemProperty -Path "HKLM:\SOFTWARE\ODBC\ODBC.ini\OMC_RESTAU"  -Name Description -ErrorAction SilentlyContinue){
-
-#Write-Output "not found"
-ODBCConnection -dsn "OMC_RESTAU;Uid=dba;Pwd=sql" -query $query
-
-}Elseif (Get-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\ODBC\ODBC.ini\OMC_RESTAU"  -Name Description -ErrorAction SilentlyContinue){
-
-#Write-Output "not found"
-ODBCConnection -dsn "OMC_RESTAU;Uid=dba;Pwd=sql" -query $query
-}
+ODBCConnection -dsn "CM_POS;Uid=dba;Pwd=sql" -query "select societe.soc_raisoc + ' ' +soc_adresse + ' ' + soc_codepostal + ' ' + soc_ville From societe"

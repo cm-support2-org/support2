@@ -64,22 +64,30 @@ Function ODBCConnection {
             #Ecrire le message dans un fichier text           
             Add-Content $fileToMessage $Message 
 
-            foreach ($Row in $ds.Tables[0].Rows) { 
-                Add-Content $fileToMessage $Row.countCMD
-            }
+            foreach ($Row in $ds.Tables[0].Rows) {                 
+                $adresse = $Row.adresse
+                $codePostal =  $Row.codePostal
+                $tiersId = $Row.tiersID #Id du tiers
 
+                $webData = ConvertFrom-JSON (Invoke-WebRequest -uri "https://api-adresse.data.gouv.fr/search/?q=$adresse&postcode=$codePostal")
+
+                $assets = $webData.features[0].geometry.coordinates
+
+                write-output "$($assets[0])" #longitude
+                write-output "$($assets[1])" #Latitude
+                
+            }
             #Ecrire message
         Add-Content $fileToMessage $Message 
         $ExitCode = 0
         $lbvalide = $True   
             
-        }else{
-        
+        }else{        
 
-        #Ecrire message
-        Add-Content $fileToMessage $Message 
-        $ExitCode = 0
-        $lbvalide = $True                
+            #Ecrire message
+            Add-Content $fileToMessage $Message 
+            $ExitCode = 0
+            $lbvalide = $True                
 
         }                   
             
@@ -88,11 +96,15 @@ Function ODBCConnection {
 
         if ($lbvalide -eq $false){
             $ExitCode = 1
-        }
-     
+        }     
     } 
-  
-    exit $ExitCode
 }
 
-ODBCConnection -dsn "OMC_RESTAU;Uid=dba;Pwd=sql" -query "select count(*) as countCMD from xchg_lot"
+ODBCConnection -dsn "CM_GOMC;Uid=dba;Pwd=sql" -query "Select 
+    replace(vue_tiers.mag_adresse,' ','+') as adresse, 
+    vue_tiers.mag_codepostal as codePostal,
+    vue_tiers.tie_id as tiersID
+From 
+    vue_tiers 
+Where 
+    vue_tiers.mag_adresse is not null"
