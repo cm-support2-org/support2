@@ -1,0 +1,46 @@
+ALTER FUNCTION "omc"."omc_f_decimal_to_string_new"( in adc_valeur decimal, in number_after_decimal integer default 0 )
+returns char(32)
+begin
+--
+   ----------------------------------------------------------------------------
+  -- conversion decimal -> string avec suppression zeros non significatifs
+  ----------------------------------------------------------------------------
+  --
+  
+  declare ls_valeur char(32);
+  declare ls_valeur_after_decimal char(32);
+  declare li_repeat integer;
+  declare li_pos integer;
+  
+  --
+  if adc_valeur is null then
+    -- null
+    set ls_valeur = '0.' + repeat( '0', number_after_decimal )
+  else    
+    set ls_valeur = string( adc_valeur ) ;
+    set li_pos = charindex('.',ls_valeur);
+    if li_pos > 0 then
+
+        if li_pos = 1 then
+          set ls_valeur = '0'+ls_valeur;
+          set li_pos = li_pos + 1;
+        end if;
+
+        set ls_valeur_after_decimal = right ( ls_valeur, len( ls_valeur ) - li_pos );
+        if len( ls_valeur_after_decimal ) > number_after_decimal then
+            set ls_valeur_after_decimal = left ( ls_valeur_after_decimal, number_after_decimal );
+        end if;
+        set li_repeat = number_after_decimal - len( ls_valeur_after_decimal ) ;
+        if li_repeat > 0 then
+            set ls_valeur_after_decimal = ls_valeur_after_decimal + repeat( '0', li_repeat ) ;
+        end if;
+
+        set ls_valeur = left( ls_valeur, li_pos ) + ls_valeur_after_decimal;
+    end if;
+ end if;
+    
+  --
+  -- retour
+  --    
+  return( ls_valeur )
+END
