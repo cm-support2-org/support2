@@ -192,6 +192,33 @@ If ($restultPathInstallGOMCSuite -ne "nothing") {
     }
  }
  
+############################################################################################
+ 
+ #Si un repertoire d'installation GOMC est trouve 
+If ($restultPathInstallGOMCSuite -ne "nothing") {
+    $pathGOMC = "$restultPathInstallGOMCSuite\CashmagGomc.exe"
+
+    #Recuperation de la version de l'appli restau.exe s'il existe
+    if (Test-Path $pathGOMC -PathType leaf){
+      $versionProgrammeGOMC = [System.Diagnostics.FileVersionInfo]::GetVersionInfo("$pathGOMC").FileVersion
+
+        if ($versionProgrammeGOMC.Contains(",")){
+            # Remplacer les virgules par des points dans la valeur de FileVersion
+            $versionProgrammeGOMC = $versionProgrammeGOMC.Replace(",", ".")
+        }
+        
+        #Formatage de la version
+        $formattedVersion = Get-FormatVersion -Version $versionProgrammeGOMC
+      
+      #affichage de la version final
+      write-output "---------------------------------------------"
+      write-output "Version du logiciel GOMC"
+      write-output "---------------------------------------------"
+      write-output $formattedVersion
+      $VersionOfApplication = $formattedVersion
+    }
+ }
+ 
  ############################################################################################
  
  #Si un repertoire d'installation WSServer est trouve 
