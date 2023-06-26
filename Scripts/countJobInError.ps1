@@ -67,7 +67,7 @@ Function ODBCConnection {
             Add-Content $fileToMessage $Message 
 
             foreach ($Row in $ds.Tables[0].Rows) { 
-                Add-Content $fileToMessage $Row.countTicket
+                Add-Content $fileToMessage $Row.countJob
             }
 
             #Ecrire message
@@ -96,4 +96,4 @@ Function ODBCConnection {
     exit $ExitCode
 }
 
-ODBCConnection -dsn "CM_MOTEX_GOMC;Uid=dba;Pwd=sql" -query "SELECT count(*) FROM job"
+ODBCConnection -dsn "CM_MOTEX_GOMC;Uid=dba;Pwd=sql" -query "SELECT count(*) as countJob FROM job"
