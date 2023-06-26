@@ -7,7 +7,7 @@ Change Log
 $ExitCode = 0
 
 #Verification si le fichier existe. S'il existe pas creation
-$fileToMessage = "countJobInErreur.txt"
+$fileToMessage = "C:\#Cashmag\Scripts\countJobInErreur.txt"
 
 if (Test-Path $fileToMessage -PathType leaf)
 {
