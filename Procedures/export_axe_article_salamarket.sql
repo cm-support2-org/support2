@@ -14,8 +14,8 @@ BEGIN
     --Position="40" 	Length="8"   PRIX DE VENTE
     --Position="48"     Length="15"  RACES
     --Position="63"     Length="15"  ELEVAGES
-    --Position="83"     Length="8"   PRIX_VENTE_PROMO
-    --Position="91"     Length="8"   PRIX_UNITAIRE_PROMO
+    --Position="78"     Length="8"   PRIX_VENTE_PROMO
+    --Position="86"     Length="8"   PRIX_UNITAIRE_PROMO
     --Position="100" 	Length="8"   CODE INTERNE 
     --Position="113" 	Length="5"   CODE FOURNISSEUR 
     --Position="118" 	Length="8"   CONTENANCE + UNITE 
