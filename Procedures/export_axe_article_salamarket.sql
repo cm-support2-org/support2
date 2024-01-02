@@ -159,7 +159,11 @@ BEGIN
         left( omc_f_decimal_to_string_new(round(tarif_ct.tarct_prix_1/ coalesce(nullif(sref_article.sra_qte_uni_ref_vente_etiq,''),1),2),2), 8 ) + coalesce(space( 8 - length(omc_f_decimal_to_string_new(round(tarif_ct.tarct_prix_1 / coalesce(nullif(sref_article.sra_qte_uni_ref_vente_etiq,''),1),2),2 ))),space(8)) as PRIX_UNITAIRE, 
         space(2),
         left( cast(unite_etiq.uni_code as varchar ), 2 ) + coalesce(space( 2 - length(cast (unite_etiq.uni_code as varchar))),space(2)) as UNITE,              
-        case when tarif_ct.tarct_debut_prix_promo is null then 'N'  else 'O' end as INDICATEUR_PROMO,
+	case  
+        	when tarif_ct.tarct_debut_prix_promo is null then 'N' 
+        	when tarif_ct.tarct_debut_prix_promo > dateformat(now(), 'yyyy-mm-dd') then 'O' 
+    		else 'N'
+    	end as INDICATEUR_PROMO,
         upper(left( cast(from_origines.Origines  as varchar ), 15 ) + coalesce(space( 15 - length(cast (from_origines.Origines  as varchar))),space(15))) as ORIGINES,                      
         upper(left( cast(classe_produit.clapro_libelle  as varchar ), 15 ) + coalesce(space( 15 - length(cast (classe_produit.clapro_libelle  as varchar))),space(15))) as CATEGORIE,
         upper(left( cast(from_calibres.Calibres  as varchar ), 15 ) + coalesce(space( 15 - length(cast (from_calibres.Calibres  as varchar))),space(15))) as CALIBRES,
