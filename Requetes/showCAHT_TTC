@@ -1,0 +1,32 @@
+--Permet l'affichage du CA HT, CA TTC et du Taux de TVA par date et magasin.
+
+select
+    dateformat(ticket.tic_chrono, 'yyyy-mm') as date_ticket,
+    tiers.tie_code as code_tiers,
+    magasin.mag_code as code_magasin,
+    cast((cast(dtica_tva as decimal (10,2)) / 100) as decimal(10,2)) as taux_tva,
+    sum(cast((cast(dtica_ca as decimal (10,2)) / 100) as decimal(10,2))) as  CA_TTC,
+    sum(cast(omc_f_calcul_ht(cast((cast(dtica_ca as decimal (10,2)) / 100) as decimal(10,2)),null,null,null,taux_tva,null,null,null,0,0,0,2) as decimal(10,2))) as CA_HT
+From
+    ticket,
+    detail_ticket_art,
+    tiers left outer join magasin on
+        tiers.tie_id = magasin.tie_id and
+        tiers.tie_publisher = magasin.tie_publisher
+Where
+    ticket.Tic_id = detail_ticket_art.tic_id and
+    ticket.Tic_publisher = detail_ticket_art.tic_publisher and
+    ticket.tie_id = tiers.tie_id and
+    ticket.tie_publisher = tiers.tie_publisher and
+ 
+    ticket.tic_chrono > '2001-01-14 00:00' 
+
+Group by
+    date_ticket,
+    code_tiers,
+    code_magasin,
+    taux_tva
+HAVING 
+    CA_TTC <> 0
+Order By 
+    date_ticket asc
