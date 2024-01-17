@@ -330,7 +330,7 @@ BEGIN
         plu_sref.sra_id = sref_article.sra_id and
         plu_sref.sra_publisher = sref_article.sra_publisher and
         code_barre.codbr_codebarre is not null and
-        omc.article.art_chrono_m > dateArtModification            
+        article.art_derniere_modif > dateArtModification            
     Order by    
         article.art_id asc
  
