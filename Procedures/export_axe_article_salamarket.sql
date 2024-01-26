@@ -14,8 +14,8 @@ BEGIN
     --Position="40" 	Length="8"   PRIX DE VENTE
     --Position="48"     Length="15"  RACES
     --Position="63"     Length="15"  ELEVAGES
-    --Position="78"     Length="8"   PRIX_VENTE_PROMO
-    --Position="86"     Length="8"   PRIX_UNITAIRE_PROMO
+    --Position="83"     Length="8"   PRIX_VENTE_PROMO
+    --Position="91"     Length="8"   PRIX_UNITAIRE_PROMO
     --Position="100" 	Length="8"   CODE INTERNE 
     --Position="113" 	Length="5"   CODE FOURNISSEUR 
     --Position="118" 	Length="8"   CONTENANCE + UNITE 
@@ -54,6 +54,8 @@ BEGIN
     -- init
     if as_date_modificcation is not null then
         set dateArtModification = dateadd(day,-as_date_modificcation,dateformat(current timestamp, 'yyyy-mm-dd 00:00:00'));
+    elseif  as_date_modificcation = 0 then
+        set dateArtModification = dateformat(current timestamp, 'yyyy-mm-dd 23:59:59');
     else
         set dateArtModification = '2000-01-01 00:00:00'
     end if;
@@ -139,6 +141,8 @@ BEGIN
     -- resultat
  unload       
         select
+        article.art_derniere_modif,
+        tarif_ct.tarct_debut_prix_promo,
         space(1) as CREATION_MODIFICATION_SUPPRESSION,
         space(2),                      
         left( cast(code_barre.codbr_codebarre as varchar), 13 ) + coalesce(space( 13 - length(cast (code_barre.codbr_codebarre as varchar))),space(13)) as CODE_EAN,
@@ -159,11 +163,11 @@ BEGIN
         left( omc_f_decimal_to_string_new(round(tarif_ct.tarct_prix_1/ coalesce(nullif(sref_article.sra_qte_uni_ref_vente_etiq,''),1),2),2), 8 ) + coalesce(space( 8 - length(omc_f_decimal_to_string_new(round(tarif_ct.tarct_prix_1 / coalesce(nullif(sref_article.sra_qte_uni_ref_vente_etiq,''),1),2),2 ))),space(8)) as PRIX_UNITAIRE, 
         space(2),
         left( cast(unite_etiq.uni_code as varchar ), 2 ) + coalesce(space( 2 - length(cast (unite_etiq.uni_code as varchar))),space(2)) as UNITE,              
-	case  
-        	when tarif_ct.tarct_debut_prix_promo is null then 'N' 
-        	when tarif_ct.tarct_debut_prix_promo >= dateformat(now(), 'yyyy-mm-dd') then 'O' 
-    		else 'N'
-    	end as INDICATEUR_PROMO,
+        case 
+            when tarif_ct.tarct_debut_prix_promo is null then 'N'  
+            when tarif_ct.tarct_debut_prix_promo >= dateformat(now(),'yyyy-mm-dd') then 'O'
+            else 'N' 
+        end as INDICATEUR_PROMO,               
         upper(left( cast(from_origines.Origines  as varchar ), 15 ) + coalesce(space( 15 - length(cast (from_origines.Origines  as varchar))),space(15))) as ORIGINES,                      
         upper(left( cast(classe_produit.clapro_libelle  as varchar ), 15 ) + coalesce(space( 15 - length(cast (classe_produit.clapro_libelle  as varchar))),space(15))) as CATEGORIE,
         upper(left( cast(from_calibres.Calibres  as varchar ), 15 ) + coalesce(space( 15 - length(cast (from_calibres.Calibres  as varchar))),space(15))) as CALIBRES,
@@ -330,9 +334,9 @@ BEGIN
         plu_sref.sra_id = sref_article.sra_id and
         plu_sref.sra_publisher = sref_article.sra_publisher and
         code_barre.codbr_codebarre is not null and
-        article.art_derniere_modif >= dateArtModification            
+        (article.art_derniere_modif >= dateArtModification or tarif_ct.tarct_debut_prix_promo >= dateArtModification)
     Order by    
         article.art_id asc
  
-    TO 'C:\host\tomajcai.fic' DELIMITED by '' QUOTE '' FORMAT ASCII
+   TO 'C:\host\tomajcai.fic' DELIMITED by '' QUOTE '' FORMAT ASCII
 END
