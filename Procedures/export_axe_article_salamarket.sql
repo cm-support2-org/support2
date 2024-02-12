@@ -141,8 +141,6 @@ BEGIN
     -- resultat
  unload       
         select
-        article.art_derniere_modif,
-        tarif_ct.tarct_debut_prix_promo,
         space(1) as CREATION_MODIFICATION_SUPPRESSION,
         space(2),                      
         left( cast(code_barre.codbr_codebarre as varchar), 13 ) + coalesce(space( 13 - length(cast (code_barre.codbr_codebarre as varchar))),space(13)) as CODE_EAN,
@@ -165,7 +163,7 @@ BEGIN
         left( cast(unite_etiq.uni_code as varchar ), 2 ) + coalesce(space( 2 - length(cast (unite_etiq.uni_code as varchar))),space(2)) as UNITE,              
         case 
             when tarif_ct.tarct_debut_prix_promo is null then 'N'  
-            when tarif_ct.tarct_debut_prix_promo >= dateformat(now(),'yyyy-mm-dd') then 'O'
+            when ( tarif_ct.tarct_debut_prix_promo <= dateformat(now(),'yyyy-mm-dd') and tarif_ct.tarct_fin_prix_promo >= dateformat(now(),'yyyy-mm-dd')) then 'O' 
             else 'N' 
         end as INDICATEUR_PROMO,               
         upper(left( cast(from_origines.Origines  as varchar ), 15 ) + coalesce(space( 15 - length(cast (from_origines.Origines  as varchar))),space(15))) as ORIGINES,                      
