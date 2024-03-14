@@ -122,7 +122,7 @@ function Call-MainForm_psf
 	$MainForm.ShowIcon = $False
     $MainForm.ShowInTaskbar = $False
     $MainForm.StartPosition = 'CenterScreen'
-	$MainForm.Text = 'Your Company | IT Systems Maintenance'
+	$MainForm.Text = 'Cashmag | Service Support Client'
 	$MainForm.TopMost = $True
     $MainForm.add_Load($MainForm_Load)
     $panel2.Controls.Add($ButtonCancel)
@@ -138,7 +138,7 @@ function Call-MainForm_psf
 	$ButtonCancel.Name = 'ButtonCancel'
 	$ButtonCancel.Size = '77, 45'
     $ButtonCancel.TabIndex = 7
-	$ButtonCancel.Text = 'Cancel'
+	$ButtonCancel.Text = 'Annuler'
     $ButtonCancel.UseVisualStyleBackColor = $True
     $ButtonCancel.add_Click($buttonCancel_Click)
     $ButtonPostpone1Hour.Font = 'Microsoft Sans Serif, 8.25pt, style=Bold'
@@ -146,7 +146,7 @@ function Call-MainForm_psf
     $ButtonPostpone1Hour.Name = 'ButtonPostpone1Hour'
     $ButtonPostpone1Hour.Size = '105, 45'
     $ButtonPostpone1Hour.TabIndex = 6
-    $ButtonPostpone1Hour.Text = 'Postpone for 1 Hour'
+    $ButtonPostpone1Hour.Text = 'Reporter dans une heure'
     $ButtonPostpone1Hour.UseVisualStyleBackColor = $True
     $ButtonPostpone1Hour.add_Click($ButtonPostpone1Hour_Click)
     $ButtonRestartNow.Font = 'Microsoft Sans Serif, 8.25pt, style=Bold'
@@ -155,7 +155,7 @@ function Call-MainForm_psf
     $ButtonRestartNow.Name = 'ButtonRestartNow'
     $ButtonRestartNow.Size = '91, 45'
     $ButtonRestartNow.TabIndex = 0
-    $ButtonRestartNow.Text = 'Restart Now'
+    $ButtonRestartNow.Text = 'Redémarrer maintenant'
     $ButtonRestartNow.UseVisualStyleBackColor = $True
     $ButtonRestartNow.add_Click($ButtonRestartNow_Click)
     $panel1.Controls.Add($labelITSystemsMaintenance)
@@ -170,7 +170,7 @@ function Call-MainForm_psf
     $labelITSystemsMaintenance.Name = 'labelITSystemsMaintenance'
     $labelITSystemsMaintenance.Size = '269, 23'
     $labelITSystemsMaintenance.TabIndex = 1
-    $labelITSystemsMaintenance.Text = 'Scheduled Maintenance'
+    $labelITSystemsMaintenance.Text = 'Maintenance planifiée'
     $labelITSystemsMaintenance.TextAlign = 'MiddleLeft'
     $labelITSystemsMaintenance.add_Click($labelITSystemsMaintenance_Click)
     $labelSecondsLeftToRestart.AutoSize = $True
@@ -179,7 +179,7 @@ function Call-MainForm_psf
     $labelSecondsLeftToRestart.Name = 'labelSecondsLeftToRestart'
     $labelSecondsLeftToRestart.Size = '155, 15'
     $labelSecondsLeftToRestart.TabIndex = 5
-    $labelSecondsLeftToRestart.Text = 'Time left to restart :'
+    $labelSecondsLeftToRestart.Text = 'Temps restant pour redémarrer :'
     $labelTime.AutoSize = $True
 	$labelTime.Font = 'Microsoft Sans Serif, 9pt, style=Bold'
     $labelTime.ForeColor = '192, 0, 0'
@@ -195,9 +195,7 @@ function Call-MainForm_psf
     $labelInOrderToApplySecuri.Name = 'labelInOrderToApplySecuri'
     $labelInOrderToApplySecuri.Size = '350, 83'
     $labelInOrderToApplySecuri.TabIndex = 2
-    $labelInOrderToApplySecuri.Text = 'In order to apply security patches and updates for your system, your computer must be restarted.
- 	
-Please save all your files now to prevent data loss.'
+    $labelInOrderToApplySecuri.Text = 'Pour appliquer les correctifs de sécurité et les mises à jour pour votre système, votre ordinateur doit être redémarré.'
     $timerUpdate.add_Tick($timerUpdate_Tick)
     $panel1.ResumeLayout()
     $panel2.ResumeLayout()
