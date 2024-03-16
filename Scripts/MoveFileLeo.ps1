@@ -16,7 +16,8 @@ function copyHisto_j {
     $filtre = "Histo_j*.FIC"
 
     # Obtenir la liste des fichiers dans les sous-dossiers qui ont été modifiés après la date minimale et qui correspondent au filtre de nom de fichier
-    $listeFichiers = Get-ChildItem -Path $dossierRacine -Recurse -File -Filter $filtre | Where-Object { $_.LastWriteTime -gt $dateMostRecentFile }
+    #$listeFichiers = Get-ChildItem -Path $dossierRacine -Recurse -File -Filter $filtre | Where-Object { $_.LastWriteTime -gt $dateMostRecentFile }
+    $listeFichiers = Get-ChildItem -Path $dossierRacine -Recurse | Where-Object { !$_.PSIsContainer -and $_.Name -like $filtre -and $_.LastWriteTime -gt $dateMostRecentFile }
 
     # Vérifier si des fichiers ont été trouvés
     if ($listeFichiers.Count -eq 0) {
@@ -42,7 +43,9 @@ function copyReglem_j {
      $filtre = "Reglem_j*.FIC"
 
      # Obtenir la liste des fichiers dans les sous-dossiers qui ont été modifiés après la date minimale et qui correspondent au filtre de nom de fichier
-     $listeFichiers = Get-ChildItem -Path $dossierRacine -Recurse -File -Filter $filtre | Where-Object { $_.LastWriteTime -gt $dateMostRecentFile }
+     #$listeFichiers = Get-ChildItem -Path $dossierRacine -Recurse -File -Filter $filtre | Where-Object { $_.LastWriteTime -gt $dateMostRecentFile }
+     $listeFichiers = Get-ChildItem -Path $dossierRacine -Recurse | Where-Object { !$_.PSIsContainer -and $_.Name -like $filtre -and $_.LastWriteTime -gt $dateMostRecentFile }
+
  
      # Vérifier si des fichiers ont été trouvés
      if ($listeFichiers.Count -eq 0) {
@@ -57,7 +60,6 @@ function copyReglem_j {
  
      }
 }
-
 
 #------------------------------------------------------------------------------------------------------------------
 #Fichier Histo_j
