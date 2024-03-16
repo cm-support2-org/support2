@@ -1,0 +1,36 @@
+--Permet l'affichage du CA HT, CA TTC et du Taux de TVA par date et magasin.
+
+select    
+    dateformat(ticket.tic_chrono, 'yyyy-mm') as date_ticket,
+    /*(convert(decimal(11,2),convert(decimal(13,2),(case "detail_ticket_art"."dtica_type_detail"
+    when 3 then 0 when 4 then 0 when 5 then 0 else "detail_ticket_art"."dtica_ca" end))
+    /100)) as "compute_ca",   */
+    (convert(char(254),magasin.mag_raisoc)) as compute_magasin,
+    (convert(char(254), terminal.ter_libelle)) as compute_terminal,
+    cast((cast(dtica_tva as decimal (10,2)) / 100) as decimal(10,2)) as taux_tva,
+    sum(cast((cast(dtica_ca as decimal (10,2)) / 100) as decimal(10,2))) as CA_TTC,
+    sum(cast(omc_f_calcul_ht(cast((cast(dtica_ca as decimal (10,2)) / 100) as decimal(10,2)),null,null,null,taux_tva,null,null,null,0,0,0,2) as decimal(10,2))) as CA_HT
+from 
+    detail_ticket_art,
+    ticket,
+    terminal,
+    magasin
+where    
+    detail_ticket_art.tic_id = ticket.tic_id and 
+    detail_ticket_art.tic_publisher = ticket.tic_publisher and(
+    terminal.mag_id = magasin.mag_id) and(
+    terminal.mag_publisher = magasin.mag_publisher) and(
+    terminal.ter_id = ticket.ter_id) and(
+    terminal.ter_publisher = ticket.ter_publisher) and 
+    omc_f_autorise_mag(magasin.mag_id,magasin.mag_publisher) = 1 and
+    
+    ticket.tic_chrono > '2001-01-14 00:00'
+Group by
+    date_ticket,
+    compute_magasin,
+    compute_terminal,
+    taux_tva
+HAVING
+    CA_TTC <> 0
+Order By
+    date_ticket asc

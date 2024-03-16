@@ -54,6 +54,8 @@ BEGIN
     -- init
     if as_date_modificcation is not null then
         set dateArtModification = dateadd(day,-as_date_modificcation,dateformat(current timestamp, 'yyyy-mm-dd 00:00:00'));
+    elseif  as_date_modificcation = 0 then
+        set dateArtModification = dateformat(current timestamp, 'yyyy-mm-dd 23:59:59');
     else
         set dateArtModification = '2000-01-01 00:00:00'
     end if;
@@ -159,7 +161,11 @@ BEGIN
         left( omc_f_decimal_to_string_new(round(tarif_ct.tarct_prix_1/ coalesce(nullif(sref_article.sra_qte_uni_ref_vente_etiq,''),1),2),2), 8 ) + coalesce(space( 8 - length(omc_f_decimal_to_string_new(round(tarif_ct.tarct_prix_1 / coalesce(nullif(sref_article.sra_qte_uni_ref_vente_etiq,''),1),2),2 ))),space(8)) as PRIX_UNITAIRE, 
         space(2),
         left( cast(unite_etiq.uni_code as varchar ), 2 ) + coalesce(space( 2 - length(cast (unite_etiq.uni_code as varchar))),space(2)) as UNITE,              
-        case when tarif_ct.tarct_debut_prix_promo is null then 'N'  else 'O' end as INDICATEUR_PROMO,
+        case 
+            when tarif_ct.tarct_debut_prix_promo is null then 'N'  
+            when ( tarif_ct.tarct_debut_prix_promo <= dateformat(now(),'yyyy-mm-dd') and (tarif_ct.tarct_fin_prix_promo >= dateformat(now(),'yyyy-mm-dd')) or tarif_ct.tarct_fin_prix_promo is null)  then 'O' 
+            else 'N' 
+        end as INDICATEUR_PROMO,               
         upper(left( cast(from_origines.Origines  as varchar ), 15 ) + coalesce(space( 15 - length(cast (from_origines.Origines  as varchar))),space(15))) as ORIGINES,                      
         upper(left( cast(classe_produit.clapro_libelle  as varchar ), 15 ) + coalesce(space( 15 - length(cast (classe_produit.clapro_libelle  as varchar))),space(15))) as CATEGORIE,
         upper(left( cast(from_calibres.Calibres  as varchar ), 15 ) + coalesce(space( 15 - length(cast (from_calibres.Calibres  as varchar))),space(15))) as CALIBRES,
@@ -326,9 +332,15 @@ BEGIN
         plu_sref.sra_id = sref_article.sra_id and
         plu_sref.sra_publisher = sref_article.sra_publisher and
         code_barre.codbr_codebarre is not null and
-        omc.article.art_chrono_m > dateArtModification            
+        (article.art_derniere_modif >= dateArtModification or tarif_ct.tarct_debut_prix_promo >= dateArtModification or tarif_ct.tarct_fin_prix_promo <= dateArtModification)
     Order by    
         article.art_id asc
  
-    TO 'C:\host\tomajcai.fic' DELIMITED by '' QUOTE '' FORMAT ASCII
+   TO 'C:\host\tomajcai.fic' DELIMITED by '' QUOTE '' FORMAT ASCII
+
+   --Si les dates des prix promo (début et fin) sont < à aujourd'hui on clear.
+  update tarif_ct
+	 set tarif_ct.tarct_debut_prix_promo = null, tarif_ct.tarct_fin_prix_promo = null
+	 where ( tarif_ct.tarct_debut_prix_promo < dateformat(now(),'yyyy-mm-dd') and  tarif_ct.tarct_fin_prix_promo < dateformat(now(),'yyyy-mm-dd'));
+  commit
 END
