@@ -1,5 +1,5 @@
 CREATE FUNCTION "omc"."omc_f_calcul_check_digit"(barcodes t_code_barre)
-RETURNS VARCHAR(13)
+RETURNS t_code_barre
 DETERMINISTIC
 
     --Cette fonction permet le calcul du checkdigit pour les EAN 8 ou 13.
