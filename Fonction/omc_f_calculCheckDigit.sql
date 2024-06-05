@@ -1,3 +1,7 @@
+if exists(select 1 from sys.sysprocedure where proc_name = 'omc_f_calcul_check_digit') then
+   drop procedure omc_f_calcul_check_digit
+end if;
+
 CREATE FUNCTION "omc"."omc_f_calcul_check_digit"(barcodes t_code_barre)
 RETURNS t_code_barre
 DETERMINISTIC
