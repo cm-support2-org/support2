@@ -13,7 +13,7 @@ BEGIN
     set ls_barcodes = barcodes;
 
     --C'est un EAN13 ?
-    if len(barcodes) = 13 then
+    if len(barcodes) = 13 and locate(ls_barcodes,'*') <> 0 then
 
         --On supprime l'étoile
         set ls_barcodes = REPLACE(ls_barcodes,'*','');
@@ -42,7 +42,7 @@ BEGIN
 	end if;
 
     --C'est un EAN8 8
-    elseif len(barcodes) = 8 then
+    elseif len(barcodes) = 8 and locate(ls_barcodes,'*') <> 0 then
         
         --On supprime l'étoile
         set ls_barcodes = REPLACE(ls_barcodes,'*','');
