@@ -1,0 +1,28 @@
+//Permet d'afficher le ca HT et TTC par jour et par magasin
+select    
+    dateformat(ticket.tic_chrono, 'yyyy-mm') as date_ticket,
+    (convert(char(254),magasin.mag_code)) as compute_magasin,
+    sum(cast((cast(dtica_ca as decimal (10,2)) / 100) as decimal(10,2))) as CA_TTC,
+    sum(cast(omc_f_calcul_ht(cast((cast(dtica_ca as decimal (10,2)) / 100) as decimal(10,2)),null,null,null,cast((cast(dtica_tva as decimal (10,2)) / 100) as decimal(10,2)),null,null,null,0,0,0,2) as decimal(10,2))) as CA_HT
+from 
+    detail_ticket_art,
+    ticket,
+    terminal,
+    magasin
+where    
+    detail_ticket_art.tic_id = ticket.tic_id and 
+    detail_ticket_art.tic_publisher = ticket.tic_publisher and(
+    terminal.mag_id = magasin.mag_id) and(
+    terminal.mag_publisher = magasin.mag_publisher) and(
+    terminal.ter_id = ticket.ter_id) and(
+    terminal.ter_publisher = ticket.ter_publisher) and 
+    omc_f_autorise_mag(magasin.mag_id,magasin.mag_publisher) = 1 and
+    
+    ticket.tic_chrono > '2001-01-14 00:00'
+Group by
+    date_ticket,
+    compute_magasin
+HAVING
+    CA_TTC <> 0
+Order By
+    date_ticket asc
